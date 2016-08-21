@@ -1,14 +1,47 @@
 [![build status](https://secure.travis-ci.org/survivejs/react-component-boilerplate.svg)](http://travis-ci.org/survivejs/react-component-boilerplate) [![bitHound Score](https://www.bithound.io/github/survivejs/react-component-boilerplate/badges/score.svg)](https://www.bithound.io/github/survivejs/react-component-boilerplate) [![Dependency Status](https://david-dm.org/survivejs/react-component-boilerplate.svg)](https://david-dm.org/survivejs/react-component-boilerplate)
 
-# react-component-boilerplate - Boilerplate for React.js components
+### Synopsis
 
-This is a simple boilerplate that has been developed to make it easier to develop React components and small projects.
+An advanced input filter that gets out of your way while still providing powerful autocomplete functionality.
 
-> Check out [SurviveJS - Webpack and React](http://survivejs.com/) to dig deeper into the topic.
+### Code Example
 
-## Basic Usage
+```
+ <Filter
+    filters={this.state.filters}
+    categories={this.state.categories}
+    operators={this.state.operators}
+    options={this.state.options}
+    conditions={this.state.conditions}
+    onAddFilter={this.onAddFilter}
+    onRemoveFilter={this.onRemoveFilter}
+    onFiltersChange={this.onFiltersChange}
+    fetchOptions={this.fetchOptions}
+    loading={this.state.loading}
+    threshold={2}
+    noRepeat={false}
+  />
+```
 
-If you want to replace project meta information (author etc.), consider using a tool like [replace-project-meta](https://www.npmjs.com/package/replace-project-meta).
+### Motivation
+
+Most filtering solutions hijack your ability to just type in your preferred format, this makes no assumptions but provides sane defaults.
+
+### Installation
+
+`npm install react-facet-filter`
+
+### Tests
+
+`npm test`
+
+### Contributors
+
+https://github.com/zsherman
+
+### License
+
+MIT.
 
 ### Common Tasks
 
@@ -45,5 +78,5 @@ console.log(a + b);
 
 ## License
 
-*react-component-boilerplate* is available under MIT. See LICENSE for more details.
+Available under MIT.
 
