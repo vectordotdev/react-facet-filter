@@ -1,0 +1,186 @@
+/* TODO: insert default styles of your component here for easy access */
+
+/* React Facet Filter Styles */
+
+.Filter {
+  margin: 75px auto;
+  position: relative;
+  max-width: 400px;
+}
+
+.Filter input {
+  border: 1px solid #ddd;
+  font-size: 15px;
+  padding: 10px;
+  width: 100%;
+  outline: none;
+}
+
+.Filter .autocomplete-list {
+  position: absolute;
+}
+
+.Filter .autocomplete-list .autocomplete-label {
+  padding: 3px 0;
+}
+
+.Filter .autocomplete-list .autocomplete-type {
+  font-size: 11px;
+  color: #333;
+}
+
+ul {
+  text-align: left;
+  list-style: none;
+}
+
+/* Spinner Styles */
+@keyframes Select-animation-spin {
+  to {
+    transform: rotate(1turn);
+  }
+}
+@-webkit-keyframes Select-animation-spin {
+  to {
+    -webkit-transform: rotate(1turn);
+  }
+}
+
+@keyframes Autocomplete-animation-scale {
+  to {
+    transform: scale(1);
+  }
+}
+
+
+.Autocomplete-enter {
+  transform: scale(0);
+  opacity: .0;
+}
+
+.Autocomplete-enter.Autocomplete-enter-active {
+  transition: all .25s cubic-bezier(.25, 1.25, .5, .5);
+  transform-origin: 1em 0% 0px;
+  transform: scale(1);
+  opacity: 1;
+}
+
+.Autocomplete-leave {
+  opacity: 0;
+}
+
+.Autocomplete-leave.Autocomplete-leave-active {
+  opacity: 0
+}
+
+.spinner__container {
+  text-align: center;
+  padding: 50px 0;
+  min-width: 140px;
+  background: #FFF;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.spinner--autocomplete {
+  -webkit-animation: Select-animation-spin 400ms infinite linear;
+  -o-animation: Select-animation-spin 400ms infinite linear;
+  animation: Select-animation-spin 400ms infinite linear;
+  width: 16px;
+  height: 16px;
+  box-sizing: border-box;
+  border-radius: 50%;
+  border: 2px solid #ccc;
+  border-right-color: #333;
+  display: inline-block;
+  position: relative;
+  vertical-align: middle;
+}
+
+
+.react-list-select {
+  display: inline-block;
+  outline: none;
+  min-width: 200px;
+}
+
+.react-list-select--item {
+  padding: 0.3em 0.6em;
+  cursor: pointer;
+  position: relative;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  -o-user-select: none;
+  user-select: none;
+}
+
+.react-list-select--item:hover {
+  background: #f3f3f3;
+}
+
+.react-list-select--item.is-selected {
+  -webkit-user-select: inherit;
+  -moz-user-select: inherit;
+  -ms-user-select: inherit;
+  -o-user-select: inherit;
+  user-select: inherit;
+}
+
+.react-list-select--item.is-disabled {
+  cursor: default;
+}
+
+ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+
+body {
+  padding: 3em;
+}
+
+.demo > div {
+  display: inline-block;
+  vertical-align: top;
+  margin-right: 1.5em;
+}
+
+
+/* Add some style to the list */
+
+.react-list-select {
+  background: #fafafa;
+  border: 1px solid #cacaca;
+  margin-right: .5em;
+}
+.react-list-select--item.is-selected {
+  background: #D7E7FF;
+}
+.react-list-select:focus .react-list-select--item.is-focused::before,
+.react-list-select:focus .react-list-select--item.is-focused::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: #79B9FF;
+}
+.react-list-select:focus .react-list-select--item.is-focused::before {
+  left: 0;
+}
+.react-list-select:focus .react-list-select--item.is-focused::after {
+  right: 0;
+}
+.react-list-select--item.is-disabled {
+  color: #afafaf;
+}
+
+.context-menu .react-list-select {
+  padding: .3em 0;
+}
+.context-menu .react-list-select--item {
+  font-size: .8125em;
+}
