@@ -1,7 +1,7 @@
 import React, { Component, PropTypes } from 'react';
 import ReactCSSTransitionGroup from 'react-addons-css-transition-group';
 import List from 'react-list-select';
-import utils from '../src/utils';
+import utils from './utils';
 
 const KEY = { TAB: 9, ENTER: 13, ESC: 27, UP: 38, DOWN: 40, LEFT: 37, RIGHT: 39 };
 const CHAR_WIDTH = 7;
