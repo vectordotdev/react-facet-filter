@@ -18,17 +18,6 @@ const CHAR_WIDTH = 7;
 //  +| `less than or equal to`    | `path.to.field<=number`   |
 //  +| `missing field`            | `missing:path.to.field`   |
 
-// TODO:
-// [] Support >/=/<
-// [x] Async options fetching
-// [x] Options loading state
-// [] Custom List component
-// [] Clear all filters button
-// [] Call parent function when filters update
-// [] Properly handle duplicate filters(just remove them from the query, before setting state)
-// [] Properly handle cmd + left or right
-// [] Cursor moves to end when updating a category/option
-
 // https://www.dropbox.com/s/t4flvtc5gx3qzo8/Screenshot%202016-08-19%2011.29.16.png?dl=0
 // https://www.dropbox.com/s/pkn6jsyej70r18x/Screenshot%202016-08-19%2011.29.30.png?dl=0
 // look at http://effektif.github.io/react-mentions
