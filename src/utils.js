@@ -31,6 +31,7 @@ export default class Utils {
         expression: e,
         category: tokens[0],
         option: tokens[1] !== undefined ? tokens[1] : '',
+        operator: ':',
         filterStartPos: query.indexOf(e),
         filterEndPos: query.indexOf(e) + e.length,
         complete: tokens[0] !== undefined
@@ -75,6 +76,10 @@ export default class Utils {
 
   static deduplicateQuery(query) {
     return _.uniq(this.getExpressionsFromQuery(query)).join(' ');
+  }
+
+  static filtersAreEqual(propFilters, stateFilters) {
+    return _(propFilters).differenceWith(stateFilters, _.isEqual).isEmpty();
   }
 
 }

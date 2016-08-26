@@ -39,16 +39,18 @@ class Filter extends Component {
     loading: PropTypes.bool,
     fetchOptions: PropTypes.func,
     threshold: PropTypes.number,
-    onFiltersChange: PropTypes.func
+    onFiltersChange: PropTypes.func,
+    placeholder: PropTypes.string
   }
 
   constructor(props) {
     super(props);
 
     this.state = {
-      query: '',
+      query: this.mapFiltersToQuery(props.filters),
       autocompleteQuery: '',
-      filters: [],
+      filters: props.filters,
+      expressions: [],
       selectedIndex: 0,
       showAutocomplete: false,
       autocompleteLoading: false,
@@ -57,13 +59,17 @@ class Filter extends Component {
     };
   }
 
-  renderFilterInput = () => {
-    const expressions = this.renderExpressions();
+  componentWillReceiveProps(nextProps) {
+    this.setState({
+      query: `${this.mapFiltersToQuery(nextProps.filters)} `
+    });
+  }
 
+  renderFilterInput = () => {
     return (
       <input
-        placeholder="Start typing"
-        value={expressions}
+        placeholder={this.props.placeholder || 'Start Typing...'}
+        value={this.state.query}
         onChange={this.handleChange}
         onKeyUp={this.handleKeyUp}
         onKeyDown={this.handleKeyDown}
@@ -76,8 +82,10 @@ class Filter extends Component {
     );
   }
 
-  renderExpressions = () => {
-    return this.state.query;
+  mapFiltersToQuery(filters) {
+    return filters
+           .map(f => `${f.category}${f.operator}${f.option}`)
+           .join(' ');
   }
 
   highlightMatch(el, query) {
@@ -411,7 +419,20 @@ class Filter extends Component {
     }, () => {
       this.setAutocompleteModeAndQuery();
       this.AutocompleteInput.focus();
-      this.props.onFiltersChange(this.state.filters.filter(f => f.complete));
+
+      const completeFilters = this.state.filters
+                                        .filter(f => f.complete)
+                                        .map(f => {
+                                          return {
+                                            category: f.category,
+                                            operator: f.operator,
+                                            option: f.option
+                                          };
+                                        });
+
+      if (!utils.filtersAreEqual(completeFilters, this.props.filters)) {
+        this.props.onFiltersChange(completeFilters);
+      }
     });
   }
 

@@ -11,7 +11,7 @@ class Demo extends Component {
         {
           category: 'user',
           option: 'Zach',
-          operator: '=='
+          operator: ':'
         }
       ],
       categories: [
@@ -61,7 +61,9 @@ class Demo extends Component {
   }
 
   onFiltersChange = (filters) => {
-    return filters;
+    this.setState({
+      filters
+    });
   }
 
   fetchOptions = (query) => {
@@ -83,9 +85,18 @@ class Demo extends Component {
     }, 1500);
   }
 
+  addFilter = () => {
+    const newFilter = { category: 'category', option: 'option', operator: ':' };
+    this.setState({
+      filters: [...this.state.filters, newFilter]
+    });
+  }
+
   render() {
     return (
       <div className="Demo">
+
+        <button onClick={this.addFilter}>Add Filter</button>
 
         <Filter
           filters={this.state.filters}
@@ -100,6 +111,7 @@ class Demo extends Component {
           loading={this.state.loading}
           threshold={2}
           noRepeat={false}
+          placeholder={"Search for something..."}
         />
 
       </div>
