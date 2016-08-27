@@ -64,6 +64,7 @@ class Demo extends Component {
     this.setState({
       filters
     });
+    console.log(filters);
   }
 
   fetchOptions = (query) => {

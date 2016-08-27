@@ -1,4 +1,5 @@
 import _ from 'lodash';
+import compare from 'array-compare';
 
 export default class Utils {
 
@@ -78,8 +79,20 @@ export default class Utils {
     return _.uniq(this.getExpressionsFromQuery(query)).join(' ');
   }
 
+  static getCompleteFilters(filters) {
+    return filters.filter(f => f.complete || f.complete === undefined)
+                  .map(f => {
+                    return {
+                      category: f.category,
+                      operator: f.operator,
+                      option: f.option
+                    };
+                  });
+  }
+
   static filtersAreEqual(propFilters, stateFilters) {
-    return _(propFilters).differenceWith(stateFilters, _.isEqual).isEmpty();
+    const found = compare(propFilters, stateFilters).found.length;
+    return (found === propFilters.length && found === stateFilters.length);
   }
 
 }

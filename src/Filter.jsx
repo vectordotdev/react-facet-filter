@@ -3,7 +3,17 @@ import ReactCSSTransitionGroup from 'react-addons-css-transition-group';
 import List from 'react-list-select';
 import utils from './utils';
 
-const KEY = { TAB: 9, ENTER: 13, ESC: 27, UP: 38, DOWN: 40, LEFT: 37, RIGHT: 39 };
+const KEY = {
+  TAB: 9,
+  ENTER: 13,
+  ESC: 27,
+  UP: 38,
+  DOWN: 40,
+  LEFT: 37,
+  RIGHT: 39,
+  DELETE: 46
+};
+
 const CHAR_WIDTH = 7;
 //  +| Condition                  | Example                   |
 //  +|----------------------------|---------------------------|
@@ -47,12 +57,13 @@ class Filter extends Component {
     super(props);
 
     this.state = {
-      query: this.mapFiltersToQuery(props.filters),
+      query: this.mapFiltersToQuery(this.props.filters),
       autocompleteQuery: '',
-      filters: props.filters,
+      filters: this.props.filters,
       expressions: [],
       selectedIndex: 0,
       showAutocomplete: false,
+      focused: false,
       autocompleteLoading: false,
       mode: 'category',
       cursorPosition: { startPos: 0, endPos: 0 }
@@ -60,9 +71,15 @@ class Filter extends Component {
   }
 
   componentWillReceiveProps(nextProps) {
-    this.setState({
-      query: `${this.mapFiltersToQuery(nextProps.filters)} `
-    });
+    const completeFilters = utils.getCompleteFilters(this.state.filters);
+    const nextFilters = nextProps.filters;
+
+    if (!utils.filtersAreEqual(completeFilters, nextFilters) && !this.state.focused) {
+      this.setState({
+        query: `${this.mapFiltersToQuery(nextProps.filters)} `,
+        filters: nextProps.filters
+      });
+    }
   }
 
   renderFilterInput = () => {
@@ -297,13 +314,24 @@ class Filter extends Component {
     });
   }
 
+  updateFilters = () => {
+    const completeFilters = utils.getCompleteFilters(this.state.filters);
+
+    if (!utils.filtersAreEqual(completeFilters, this.props.filters)) {
+      this.props.onFiltersChange(completeFilters);
+    }
+  }
+
   handleChange = (e) => {
     // utils.deduplicateQuery(e.target.value)
     this.setState({
       query: e.target.value,
       filters: utils.parseFiltersFromQuery(e.target.value),
       showAutocomplete: true
-    }, () => this.setAutocompleteModeAndQuery());
+    }, () => {
+      this.setAutocompleteModeAndQuery();
+      this.updateFilters();
+    });
   }
 
   handleFocus = (e) => {
@@ -311,6 +339,10 @@ class Filter extends Component {
   }
 
   handleBlur = () => {
+    this.setState({
+      focused: false
+    });
+
     setTimeout(() => {
       this.setState({
         showAutocomplete: false
@@ -320,7 +352,8 @@ class Filter extends Component {
 
   handleClick = () => {
     this.setState({
-      showAutocomplete: true
+      showAutocomplete: true,
+      focused: true
     });
 
     this.setAutocompleteModeAndQuery();
@@ -419,20 +452,7 @@ class Filter extends Component {
     }, () => {
       this.setAutocompleteModeAndQuery();
       this.AutocompleteInput.focus();
-
-      const completeFilters = this.state.filters
-                                        .filter(f => f.complete)
-                                        .map(f => {
-                                          return {
-                                            category: f.category,
-                                            operator: f.operator,
-                                            option: f.option
-                                          };
-                                        });
-
-      if (!utils.filtersAreEqual(completeFilters, this.props.filters)) {
-        this.props.onFiltersChange(completeFilters);
-      }
+      this.updateFilters();
     });
   }
 
