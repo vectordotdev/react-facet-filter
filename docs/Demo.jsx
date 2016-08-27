@@ -14,6 +14,7 @@ class Demo extends Component {
           name: 'user',
           label: 'User',
           type: 'user',
+          path: 'context.user',
           description: 'A simple description for a user.',
           enumeration: ['Ben', 'Zach', 'Adam', 'Alex', 'Nick', 'Tim', 'David'],
           autocomplete: false
@@ -22,6 +23,7 @@ class Demo extends Component {
           name: 'location',
           label: 'Location',
           type: 'location',
+          path: 'context.location',
           description: 'A simple description for a user.',
           enumeration: ['Ben', 'Zach', 'Adam', 'Alex', 'Nick', 'Tim', 'David'],
           autocomplete: false
@@ -30,6 +32,7 @@ class Demo extends Component {
           name: 'vehicle',
           label: 'Vehicle',
           type: 'location',
+          path: 'context.vehicle',
           description: 'A simple description for a user.',
           enumeration: ['Ben', 'Zach', 'Adam', 'Alex', 'Nick', 'Tim', 'David'],
           autocomplete: false

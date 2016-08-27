@@ -152,14 +152,14 @@ class Filter extends Component {
               )}
             />
           </div>
-          <div className="autocomplete-type">{c.type}</div>
+          <div className="autocomplete-path">{`${c.path} (${c.type})`}</div>
         </div>
       );
     });
   }
 
   renderAutocomplete = () => {
-    if (!this.state.showAutocomplete || this.props.autocomplete !== true) {
+    if (!this.state.showAutocomplete || !this.props.autocomplete) {
       return null;
     }
 
@@ -312,8 +312,7 @@ class Filter extends Component {
           const { mode, autocompleteQuery } = this.state;
           const { threshold } = this.props;
 
-          if (utils.shouldFetchOptions(mode, autocompleteQuery, threshold)
-              && this.props.autocomplete !== false) {
+          if (utils.shouldFetchOptions(mode, autocompleteQuery, threshold)) {
             this.props.fetchOptions(autocompleteQuery);
           }
         });
@@ -444,7 +443,7 @@ class Filter extends Component {
 
     const items = mode === 'category' ? this.filterCategories() : this.filterOptions();
 
-    const item = items[index].label;
+    const item = mode === 'category' ? items[index].path : items[index].label;
     const position = cursorPosition.endPos;
 
     const insertString = mode === 'category'
@@ -490,7 +489,7 @@ class Filter extends Component {
 
   filterCategories = () => {
     return this.props.categories.filter(c => {
-      return c.label.toLowerCase().match(
+      return c.path.toLowerCase().match(
         this.state.autocompleteQuery.toLowerCase()
       );
     });
