@@ -409,7 +409,12 @@ class Filter extends Component {
     }
 
     if (key === KEY.ENTER && this.state.showAutocomplete) {
-      this.handleAutocompleteSelect(this.state.selectedIndex);
+      if ((this.state.mode === 'option' && this.filterOptions().length)
+        || (this.state.mode === 'category' && this.filterCategories().length)) {
+        this.handleAutocompleteSelect(this.state.selectedIndex);
+      } else {
+        this.handleAutocompleteSelect(this.getAutocompleteQuery());
+      }
     }
 
     if (key === KEY.SPACE) {
@@ -440,17 +445,30 @@ class Filter extends Component {
   handleAutocompleteSelect = (index) => {
     const { mode, cursorPosition, query } = this.state;
     const filters = utils.parseFiltersFromQuery(query);
+    const position = cursorPosition.endPos;
+
+    let item;
+    let insertString;
 
     const items = mode === 'category' ? this.filterCategories() : this.filterOptions();
 
-    const item = mode === 'category' ? items[index].path : items[index].label;
-    const position = cursorPosition.endPos;
+    if (typeof index !== 'string') {
+      item = mode === 'category' ? items[index].path : items[index].label;
 
-    const insertString = mode === 'category'
-                         ? `${item}:`
-                         : item.indexOf(' ') === -1
-                           ? `${item} `
-                           : `\"${item}\" `;
+      insertString = mode === 'category'
+                     ? `${item}:`
+                     : item.indexOf(' ') === -1
+                       ? `${item} `
+                       : `\"${item}\" `;
+    } else {
+      item = index;
+
+      insertString = mode === 'category'
+                     ? `${item}:`
+                     : item.indexOf(' ') === -1
+                       ? `${item} `
+                       : `\"${item}\" `;
+    }
 
     // Find the active filter
     const filter = this.getActiveFilter();
