@@ -108,6 +108,7 @@ class Demo extends Component {
           threshold={2}
           noRepeat={false}
           placeholder={"Search for something..."}
+          autocomplete="true"
         />
 
       </div>

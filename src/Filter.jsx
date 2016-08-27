@@ -51,7 +51,8 @@ class Filter extends Component {
     fetchOptions: PropTypes.func,
     threshold: PropTypes.number,
     onFiltersChange: PropTypes.func,
-    placeholder: PropTypes.string
+    placeholder: PropTypes.string,
+    autocomplete: PropTypes.bool
   }
 
   constructor(props) {
@@ -158,13 +159,13 @@ class Filter extends Component {
   }
 
   renderAutocomplete = () => {
+    if (!this.state.showAutocomplete || this.props.autocomplete !== true) {
+      return null;
+    }
+
     let autocomplete = this.state.mode === 'category'
                        ? this.renderAutocompleteCategories()
                        : this.renderAutocompleteOptions();
-
-    if (!this.state.showAutocomplete) {
-      return null;
-    }
 
     return (
       <div
@@ -311,7 +312,8 @@ class Filter extends Component {
           const { mode, autocompleteQuery } = this.state;
           const { threshold } = this.props;
 
-          if (utils.shouldFetchOptions(mode, autocompleteQuery, threshold)) {
+          if (utils.shouldFetchOptions(mode, autocompleteQuery, threshold)
+              && this.props.autocomplete !== false) {
             this.props.fetchOptions(autocompleteQuery);
           }
         });
