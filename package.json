@@ -104,7 +104,6 @@
     "test"
   ],
   "dependencies": {
-    "array-compare": "^1.0.0",
     "lodash": "^4.15.0",
     "react-list-select": "^0.3.0"
   }

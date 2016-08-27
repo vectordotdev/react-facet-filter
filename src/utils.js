@@ -1,5 +1,4 @@
 import _ from 'lodash';
-import compare from 'array-compare';
 
 export default class Utils {
 
@@ -91,8 +90,7 @@ export default class Utils {
   }
 
   static filtersAreEqual(propFilters, stateFilters) {
-    const found = compare(propFilters, stateFilters).found.length;
-    return (found === propFilters.length && found === stateFilters.length);
+    return _.isEqual(propFilters, stateFilters);
   }
 
 }
