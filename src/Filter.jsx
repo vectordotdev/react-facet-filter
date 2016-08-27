@@ -11,7 +11,8 @@ const KEY = {
   DOWN: 40,
   LEFT: 37,
   RIGHT: 39,
-  DELETE: 46
+  DELETE: 46,
+  SPACE: 32
 };
 
 const CHAR_WIDTH = 7;
@@ -160,6 +161,10 @@ class Filter extends Component {
     let autocomplete = this.state.mode === 'category'
                        ? this.renderAutocompleteCategories()
                        : this.renderAutocompleteOptions();
+
+    if (!this.state.showAutocomplete) {
+      return null;
+    }
 
     return (
       <div
@@ -324,13 +329,19 @@ class Filter extends Component {
 
   handleChange = (e) => {
     // utils.deduplicateQuery(e.target.value)
+    const prevFilters = this.state.filters;
+    const newFilters = utils.parseFiltersFromQuery(e.target.value);
+
     this.setState({
       query: e.target.value,
-      filters: utils.parseFiltersFromQuery(e.target.value),
+      filters: newFilters,
       showAutocomplete: true
     }, () => {
       this.setAutocompleteModeAndQuery();
-      this.updateFilters();
+
+      if (prevFilters.length !== newFilters.length) {
+        this.updateFilters();
+      }
     });
   }
 
@@ -398,6 +409,10 @@ class Filter extends Component {
 
     if (key === KEY.ENTER && this.state.showAutocomplete) {
       this.handleAutocompleteSelect(this.state.selectedIndex);
+    }
+
+    if (key === KEY.SPACE) {
+      this.updateFilters();
     }
 
     if (key === KEY.ESC && this.state.showAutocomplete) {

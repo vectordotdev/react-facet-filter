@@ -19,8 +19,8 @@ const config = {
     docs: path.join(ROOT_PATH, 'docs'),
     tests: path.join(ROOT_PATH, 'tests')
   },
-  filename: 'boilerplate',
-  library: 'Boilerplate'
+  filename: 'filter',
+  library: 'Filter'
 };
 
 process.env.BABEL_ENV = TARGET;

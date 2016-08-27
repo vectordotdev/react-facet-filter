@@ -8,11 +8,6 @@ class Demo extends Component {
 
     this.state = {
       filters: [
-        {
-          category: 'user',
-          option: 'Zach',
-          operator: ':'
-        }
       ],
       categories: [
         {
