@@ -21,8 +21,8 @@ export default class Utils {
 
     // TODO dedeup expressions so there aren't duplicate
     // filters which would mess things up
-
-    return expressions.map(e => {
+    // ['category:option', 'category:option']
+    return expressions.map((e) => {
       const tokens = e.split(':');
 
       // this could be wrong if two categories/options are the same
@@ -43,17 +43,39 @@ export default class Utils {
   }
 
   static insertSelection(filter, filters, insertString, mode, query, position) {
-    if (!query.length
-        || (filter && !filters.filter(f => f.complete).length
-        && filter.expression.indexOf(':') === -1)) {
+    console.log(filters, filter);
+
+    // '|'
+    if (!filter && !filters.length) {
       return insertString;
-    } else if (position >= query.length && filters.filter(f => f.complete).length && !filter) {
+    }
+
+    // 'location:nyc |'
+    if (!filter && filters.length) {
       return [
         query.slice(0, position),
         insertString,
         query.slice(position)
       ].join('');
-    } else if (mode === 'category') {
+    }
+
+    // '|' or 'loc|'
+    if (!query.length
+        || (filter && !filters.filter(f => f.complete).length
+        && filter.expression.indexOf(':') === -1)) {
+      return insertString;
+    }
+
+    if (position >= query.length && filters.filter(f => f.complete).length && !filter) {
+      return [
+        query.slice(0, position),
+        insertString,
+        query.slice(position)
+      ].join('');
+    }
+
+    // 'user:person loc|'
+    if (mode === 'category') {
       // Replace the category
       const startPos = filter ? filter.filterStartPos : query.length;
       const categoryLength = filter ? filter.category.length : 0;
@@ -62,7 +84,10 @@ export default class Utils {
         insertString,
         query.slice(startPos + categoryLength + 1, query.length)
       ].join('');
-    } else if (mode === 'option') {
+    }
+
+    // 'user:na|'
+    if (mode === 'option') {
       // Replace the option
       return [
         query.slice(0, filter.filterStartPos + filter.category.length + 1),

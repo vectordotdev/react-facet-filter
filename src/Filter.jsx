@@ -77,9 +77,10 @@ class Filter extends Component {
     const nextFilters = nextProps.filters;
 
     if (!utils.filtersAreEqual(completeFilters, nextFilters) && !this.state.focused) {
+      const newQuery = this.mapFiltersToQuery(nextProps.filters);
       this.setState({
-        query: `${this.mapFiltersToQuery(nextProps.filters)} `,
-        filters: nextProps.filters
+        query: `${newQuery} `,
+        filters: utils.parseFiltersFromQuery(newQuery)
       });
     }
   }
@@ -252,9 +253,9 @@ class Filter extends Component {
       return position <= f.filterEndPos && position >= f.filterStartPos;
     })[0];
 
-    if (!activeFilter) {
-      // return filters.pop();
-    }
+    // if (!activeFilter) {
+    //   return filters.pop();
+    // }
 
     return activeFilter;
   }
@@ -517,6 +518,7 @@ class Filter extends Component {
   render() {
     const filterInput = this.renderFilterInput();
     const autocomplete = this.renderAutocomplete();
+    console.log(this.state);
 
     return (
       <div className="Filter">
