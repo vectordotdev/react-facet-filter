@@ -43,7 +43,6 @@ export default class Utils {
   }
 
   static insertSelection(filter, filters, insertString, mode, query, position) {
-
     // '|'
     if (!filter && !filters.length) {
       return insertString;
