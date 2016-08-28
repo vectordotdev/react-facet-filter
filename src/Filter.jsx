@@ -311,9 +311,10 @@ class Filter extends Component {
         }, () => {
           const { mode, autocompleteQuery } = this.state;
           const { threshold } = this.props;
+          const filter = this.getActiveFilter();
 
           if (utils.shouldFetchOptions(mode, autocompleteQuery, threshold)) {
-            this.props.fetchOptions(autocompleteQuery);
+            this.props.fetchOptions(autocompleteQuery, filter);
           }
         });
       });
