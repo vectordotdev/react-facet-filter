@@ -43,7 +43,6 @@ export default class Utils {
   }
 
   static insertSelection(filter, filters, insertString, mode, query, position) {
-    console.log(filters, filter);
 
     // '|'
     if (!filter && !filters.length) {

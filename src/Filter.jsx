@@ -518,7 +518,6 @@ class Filter extends Component {
   render() {
     const filterInput = this.renderFilterInput();
     const autocomplete = this.renderAutocomplete();
-    console.log(this.state);
 
     return (
       <div className="Filter">
