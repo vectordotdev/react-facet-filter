@@ -21,6 +21,8 @@ module.exports = {
     "react/sort-comp": 0,
     "react/no-multi-comp": 0,
     "no-nested-ternary": 0,
-    "space-infix-ops": 0
+    "space-infix-ops": 0,
+    "semi": 0,
+    "comma-dangle": 0
   }
 };
