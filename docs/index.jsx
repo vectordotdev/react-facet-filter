@@ -10,6 +10,7 @@ import '../style.css';
 
 import Demo from './Demo.jsx';
 import DraftJsDemo from './DraftJsDemo.jsx';
+import DraftjsPOCDemo from './DraftjsPOCDemo';
 
 // Add your documentation imports here. These are available to
 // React specimen. Do NOT pass React here as Catalog does that.
@@ -30,6 +31,11 @@ const pages = [
     path: '/draftjs',
     title: 'DraftJS',
     component: DraftJsDemo,
+  },
+  {
+    path: '/draftjspoc',
+    title: 'DraftjsPOC',
+    component: DraftjsPOCDemo,
   }
 ];
 
