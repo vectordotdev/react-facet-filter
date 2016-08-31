@@ -1,13 +1,57 @@
 import React from 'react'
 import {
   Editor,
-  EditorState
+  Modifier,
+  Entity,
+  EditorState,
+  ContentState,
+  SelectionState,
 } from 'draft-js'
+
+function getEditorState() {
+  let contentState = ContentState.createFromText('category:option');
+  const contentBlock = contentState.getFirstBlock();
+  //
+  let selectionState = SelectionState
+    .createEmpty(contentBlock.getKey())
+    .set('anchorOffset', 0)
+    .set('focusOffset', 'category'.length);
+
+  contentState = Modifier.applyEntity(
+    contentState,
+    selectionState,
+    Entity.create('CATEGORY', 'IMMUTABLE', {})
+  );
+  //
+  selectionState = SelectionState
+    .createEmpty(contentBlock.getKey())
+    .set('anchorOffset', 'category'.length)
+    .set('focusOffset', 'category:'.length);
+
+  contentState = Modifier.applyEntity(
+    contentState,
+    selectionState,
+    Entity.create('OPERATOR', 'IMMUTABLE', {})
+  );
+  //
+  selectionState = SelectionState
+    .createEmpty(contentBlock.getKey())
+    .set('anchorOffset', 'category:'.length)
+    .set('focusOffset', 'category:option'.length);
+
+  contentState = Modifier.applyEntity(
+    contentState,
+    selectionState,
+    Entity.create('OPTION', 'IMMUTABLE', {})
+  );
+
+  return EditorState.createWithContent(contentState);
+}
 
 class DraftjsPOCDemo extends React.Component {
 
   state = {
-    editorState: EditorState.createEmpty(),
+    editorState: getEditorState(),
   };
 
   handleEditorRef = (editor) => { this.editor = editor; };
