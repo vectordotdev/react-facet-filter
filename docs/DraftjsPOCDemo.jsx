@@ -8,42 +8,34 @@ import {
   SelectionState,
 } from 'draft-js'
 
-function getEditorState() {
-  let contentState = ContentState.createFromText('category:option');
+function getEditorState(filters) {
+  let contentState = ContentState.createFromText(
+    filters.map(({ category, operator, option }) => `${category}${operator}${option}`).join(' ')
+  );
   const contentBlock = contentState.getFirstBlock();
   //
-  let selectionState = SelectionState
-    .createEmpty(contentBlock.getKey())
-    .set('anchorOffset', 0)
-    .set('focusOffset', 'category'.length);
+  let anchorOffset = 0;
+  let focusOffset = 0;
+  filters.forEach(({ category, operator, option }) => {
+    [['CATEGORY', category], ['OPERATOR', operator], ['OPTION', option]].forEach(([type, it]) => {
+      anchorOffset = focusOffset;
+      focusOffset += it.length;
 
-  contentState = Modifier.applyEntity(
-    contentState,
-    selectionState,
-    Entity.create('CATEGORY', 'IMMUTABLE', {})
-  );
-  //
-  selectionState = SelectionState
-    .createEmpty(contentBlock.getKey())
-    .set('anchorOffset', 'category'.length)
-    .set('focusOffset', 'category:'.length);
+      const selectionState = SelectionState
+        .createEmpty(contentBlock.getKey())
+        .set('anchorOffset', anchorOffset)
+        .set('focusOffset', focusOffset);
 
-  contentState = Modifier.applyEntity(
-    contentState,
-    selectionState,
-    Entity.create('OPERATOR', 'IMMUTABLE', {})
-  );
-  //
-  selectionState = SelectionState
-    .createEmpty(contentBlock.getKey())
-    .set('anchorOffset', 'category:'.length)
-    .set('focusOffset', 'category:option'.length);
+      contentState = Modifier.applyEntity(
+        contentState,
+        selectionState,
+        Entity.create(type, 'IMMUTABLE', {})
+      );
+    });
 
-  contentState = Modifier.applyEntity(
-    contentState,
-    selectionState,
-    Entity.create('OPTION', 'IMMUTABLE', {})
-  );
+    anchorOffset += 1;
+    focusOffset += 1;
+  });
 
   return EditorState.createWithContent(contentState);
 }
@@ -51,7 +43,18 @@ function getEditorState() {
 class DraftjsPOCDemo extends React.Component {
 
   state = {
-    editorState: getEditorState(),
+    editorState: getEditorState([
+      {
+        category: 'category',
+        operator: ':',
+        option: 'option',
+      },
+      {
+        category: 'category2th',
+        operator: '=>',
+        option: 'option2th',
+      },
+    ]),
   };
 
   handleEditorRef = (editor) => { this.editor = editor; };
