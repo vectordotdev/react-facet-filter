@@ -9,9 +9,10 @@ import {
   EditorState,
   ContentState,
   SelectionState,
+  CompositeDecorator,
 } from 'draft-js'
 
-function getEditorState(filters) {
+function getContentState(filters) {
   let contentState = ContentState.createFromText(
     filters.map(({ category, operator, option }) => `${category}${operator}${option}`).join(' ')
   );
@@ -39,8 +40,78 @@ function getEditorState(filters) {
     anchorOffset += 1;
     focusOffset += 1;
   });
+  return contentState;
+}
 
-  return EditorState.createWithContent(contentState);
+function getDecorator() {
+  return new CompositeDecorator([
+    {
+      strategy(contentBlock, callback) {
+        contentBlock.findEntityRanges(
+          (character) => {
+            const entityKey = character.getEntity();
+            return (
+              entityKey !== null &&
+              Entity.get(entityKey).getType() === 'CATEGORY'
+            );
+          },
+          callback
+        );
+      },
+      component(props) {
+        const data = Entity.get(props.entityKey).getData();
+        return (
+          <span data={JSON.stringify(data)} style={{ border: '1px solid green' }}>
+            {props.children}
+          </span>
+        );
+      },
+    },
+    {
+      strategy(contentBlock, callback) {
+        contentBlock.findEntityRanges(
+          (character) => {
+            const entityKey = character.getEntity();
+            return (
+              entityKey !== null &&
+              Entity.get(entityKey).getType() === 'OPERATOR'
+            );
+          },
+          callback
+        );
+      },
+      component(props) {
+        const data = Entity.get(props.entityKey).getData();
+        return (
+          <span data={JSON.stringify(data)} style={{ border: '1px solid red' }}>
+            {props.children}
+          </span>
+        );
+      },
+    },
+    {
+      strategy(contentBlock, callback) {
+        contentBlock.findEntityRanges(
+          (character) => {
+            const entityKey = character.getEntity();
+            return (
+              entityKey !== null &&
+              Entity.get(entityKey).getType() === 'OPTION'
+            );
+          },
+          callback
+        );
+      },
+      component(props) {
+        const data = Entity.get(props.entityKey).getData();
+        return (
+          <span data={JSON.stringify(data)} style={{ border: '1px solid blue' }}>
+            {props.children}
+          </span>
+        );
+      },
+    },
+  ]);
 }
 
 class FacetFilter extends Component {
@@ -57,7 +128,10 @@ class FacetFilter extends Component {
   };
 
   state = {
-    editorState: getEditorState(this.props.filters),
+    editorState: EditorState.createWithContent(
+      getContentState(this.props.filters),
+      getDecorator()
+    ),
   };
 
   handleEditorRef = (editor) => { this.editor = editor; };
