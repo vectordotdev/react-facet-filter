@@ -14,14 +14,17 @@ import {
 
 function getContentState(filters) {
   let contentState = ContentState.createFromText(
-    filters.map(({ category, operator, option }) => `${category}${operator}${option}`).join(' ')
+    filters.map(({ category, operator='', option='' }) => `${category}${operator}${option}`).join(' ')
   );
   const contentBlock = contentState.getFirstBlock();
   //
   let anchorOffset = 0;
   let focusOffset = 0;
-  filters.forEach(({ category, operator, option }) => {
+  filters.forEach(({ category, operator='', option='' }) => {
     [['CATEGORY', category], ['OPERATOR', operator], ['OPTION', option]].forEach(([type, it]) => {
+      if (!it) {
+        return;
+      }
       anchorOffset = focusOffset;
       focusOffset += it.length;
 
@@ -111,7 +114,79 @@ function getDecorator() {
         );
       },
     },
+    {
+      strategy(contentBlock, callback) {
+        contentBlock.findEntityRanges(
+          (character) => {
+            const entityKey = character.getEntity();
+            return (
+              entityKey !== null &&
+              Entity.get(entityKey).getType() === 'AUTOCOMPLETE_OPTIONS'
+            );
+          },
+          callback
+        );
+      },
+      component(props) {
+        // TODO: render dropdown for auto-complete here
+        const {query} = Entity.get(props.entityKey).getData();
+        return (
+          <span data-query={query} style={{ border: '5px solid blue' }}>
+            {props.children}
+          </span>
+        );
+      },
+    },
   ]);
+}
+
+function mapEtitorState(prevEditorState, nextEditorState) {
+  const prevFirstBlock = prevEditorState.getCurrentContent().getFirstBlock();
+  const nextFirstBlock = nextEditorState.getCurrentContent().getFirstBlock();
+  if (prevFirstBlock.getLength() >= nextFirstBlock.getLength()) {
+    // This is backspace case.
+    // Should update Entity data for new query
+    return nextEditorState;
+  }
+  const expectingEntityType = 'AUTOCOMPLETE_OPTIONS';
+  const prevSelection = prevEditorState.getSelection();
+  const nextSelection = nextEditorState.getSelection();
+  const nextQuery = nextFirstBlock.getText().slice(
+    prevSelection.getStartOffset(),
+    nextSelection.getEndOffset()
+  );
+  //
+  let entityKey = prevFirstBlock.getEntityAt(prevFirstBlock.getLength() - 1);
+  if (entityKey && Entity.get(entityKey).getType() === expectingEntityType) {
+    console.log('update-query');
+    const { query } = Entity.get(entityKey).getData();
+    Entity.mergeData(entityKey, {
+      query: `${query}${nextQuery}`,
+    });
+    return nextEditorState;
+  } else {
+    console.log('apply-entity');
+    const query = nextFirstBlock.getText().slice(
+      prevSelection.getStartOffset(),
+      nextSelection.getEndOffset()
+    );
+    entityKey = Entity.create(expectingEntityType, 'MUTABLE', { query: nextQuery });
+    const nextContentState = Modifier.applyEntity(
+      nextEditorState.getCurrentContent(),
+      SelectionState
+        .createEmpty(nextFirstBlock.getKey())
+        .set('anchorOffset', prevSelection.getStartOffset())
+        .set('focusOffset', nextSelection.getEndOffset()),
+      entityKey
+    );
+    return EditorState.moveFocusToEnd(
+      EditorState.push(
+        nextEditorState,
+        nextContentState,
+        'apply-entity'
+      )
+    );
+  }
 }
 
 class FacetFilter extends Component {
@@ -128,16 +203,18 @@ class FacetFilter extends Component {
   };
 
   state = {
-    editorState: EditorState.createWithContent(
-      getContentState(this.props.filters),
-      getDecorator()
+    editorState: EditorState.moveSelectionToEnd(
+      EditorState.createWithContent(
+        getContentState(this.props.filters),
+        getDecorator()
+      )
     ),
   };
 
   handleEditorRef = (editor) => { this.editor = editor; };
   focus = () => this.editor.focus();
-  onChange = (editorState) => this.setState({ editorState });
-  logState = () => console.log(this.state.editorState.toJS());
+  onChange = (editorState) => this.setState({ editorState: mapEtitorState(this.state.editorState, editorState) });
+  logState = () => console.log(this.state.editorState.toJS(), this.state.editorState.getSelection().toJS());
 
   // TODO: Link CWRP for new filters
   // TODO: Link state changes for onFiltersChange
@@ -196,7 +273,7 @@ class DraftjsPOCDemo extends Component {
       {
         category: 'category2th',
         operator: '=>',
-        option: 'option2th',
+        option: undefined,
       },
     ],
   };
