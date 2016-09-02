@@ -129,10 +129,21 @@ function getDecorator() {
       },
       component(props) {
         // TODO: render dropdown for auto-complete here
-        const {query} = Entity.get(props.entityKey).getData();
+        const { onUpdateSelection } = Entity.get(props.entityKey).getData();
+        const query = props.decoratedText;
+        const handleClick = text => event => {
+          event.preventDefault();
+          event.stopPropagation();
+          onUpdateSelection(text);
+        };
         return (
-          <span data-query={query} style={{ border: '5px solid blue' }}>
+          <span data-query={query} style={{ border: '5px solid blue', position: 'relative' }}>
             {props.children}
+            <ul style={{position: 'absolute', top: '20px', left: '0'}} contentEditable={false}>
+              <li onClick={handleClick('option 1')}>option 1</li>
+              <li onClick={handleClick('option 3')}>option 3</li>
+              <li onClick={handleClick('option 2')}>option 2</li>
+            </ul>
           </span>
         );
       },
@@ -141,55 +152,7 @@ function getDecorator() {
 }
 
 function mapEtitorState(prevEditorState, nextEditorState) {
-  const prevFirstBlock = prevEditorState.getCurrentContent().getFirstBlock();
-  const nextFirstBlock = nextEditorState.getCurrentContent().getFirstBlock();
-  const expectingEntityType = 'AUTOCOMPLETE_OPTIONS';
-  //
-  let query = '';
-  nextFirstBlock.findEntityRanges(character => {
-    const entityKey = character.getEntity();
-    return (
-      entityKey !== null &&
-      Entity.get(entityKey).getType() === 'AUTOCOMPLETE_OPTIONS'
-    );
-  }, (start, end) => {
-    query = nextFirstBlock.getText().slice(start,end);
-  });
-  let entityKey = prevFirstBlock.getEntityAt(prevFirstBlock.getLength() - 1);
-  if (prevFirstBlock.getLength() >= nextFirstBlock.getLength() ||
-      (entityKey && Entity.get(entityKey).getType() === expectingEntityType)) {
-    console.log('update-query');
-    if (entityKey) {
-      Entity.mergeData(entityKey, {
-        query,
-      });
-    }
-    return nextEditorState;
-  } else {
-    console.log('apply-entity');
-    const prevSelection = prevEditorState.getSelection();
-    const nextSelection = nextEditorState.getSelection();
-    query = nextFirstBlock.getText().slice(
-      prevSelection.getStartOffset(),
-      nextSelection.getEndOffset()
-    );
-    entityKey = Entity.create(expectingEntityType, 'MUTABLE', { query });
-    const nextContentState = Modifier.applyEntity(
-      nextEditorState.getCurrentContent(),
-      SelectionState
-        .createEmpty(nextFirstBlock.getKey())
-        .set('anchorOffset', prevSelection.getStartOffset())
-        .set('focusOffset', nextSelection.getEndOffset()),
-      entityKey
-    );
-    return EditorState.moveFocusToEnd(
-      EditorState.push(
-        nextEditorState,
-        nextContentState,
-        'apply-entity'
-      )
-    );
-  }
+
 }
 
 class FacetFilter extends Component {
@@ -216,8 +179,100 @@ class FacetFilter extends Component {
 
   handleEditorRef = (editor) => { this.editor = editor; };
   focus = () => this.editor.focus();
-  onChange = (editorState) => this.setState({ editorState: mapEtitorState(this.state.editorState, editorState) });
+  onChange = (nextEditorState) => {
+    this.setState(state => ({
+      editorState: this.getNextEditorState(state.editorState, nextEditorState),
+    }))
+  };
+  onUpdateSelectionState = (text) => {
+    this.setState(state => ({
+      editorState: this.updateSelectionFromAutoComplete(state.editorState, text),
+    }))
+  };
   logState = () => console.log(this.state.editorState.toJS(), this.state.editorState.getSelection().toJS());
+
+  getNextEditorState(prevEditorState, nextEditorState) {
+    const prevFirstBlock = prevEditorState.getCurrentContent().getFirstBlock();
+    const nextFirstBlock = nextEditorState.getCurrentContent().getFirstBlock();
+    const expectingEntityType = 'AUTOCOMPLETE_OPTIONS';
+    let prevEntityKey = prevFirstBlock.getEntityAt(prevFirstBlock.getLength() - 1);
+    if (prevEntityKey) {
+      let found = false;
+      nextFirstBlock.findEntityRanges(
+        character => character.getEntity() === prevEntityKey,
+        _ => { found = true }
+      );
+      if (!found) {
+        // Entity was removed, so we need to delete data
+        Entity.replaceData(prevEntityKey, {});
+        prevEntityKey = null;
+      }
+    }
+    //
+    if (prevFirstBlock.getLength() >= nextFirstBlock.getLength() ||
+        (prevEntityKey && Entity.get(prevEntityKey).getType() === expectingEntityType)) {
+      console.log('update entiy selection range');
+      if (prevEntityKey) {
+        // TODO: update entiy selection range
+      }
+      return nextEditorState;
+    } else {
+      console.log('apply new entity');
+      const prevSelection = prevEditorState.getSelection();
+      const nextSelection = nextEditorState.getSelection();
+      //
+      const nextEntityKey = Entity.create(expectingEntityType, 'MUTABLE', {
+        onUpdateSelection: this.onUpdateSelectionState,
+      });
+      const nextContentState = Modifier.applyEntity(
+        nextEditorState.getCurrentContent(),
+        SelectionState
+          .createEmpty(nextFirstBlock.getKey())
+          .set('anchorOffset', prevSelection.getStartOffset())
+          .set('focusOffset', nextSelection.getEndOffset()),
+        nextEntityKey
+      );
+      return EditorState.moveFocusToEnd(
+        EditorState.push(
+          nextEditorState,
+          nextContentState,
+          'apply-entity'
+        )
+      );
+    }
+  }
+
+  updateSelectionFromAutoComplete(prevEditorState, text) {
+    const prevContentState = prevEditorState.getCurrentContent();
+    const prevFirstBlock = prevContentState.getFirstBlock();
+    const prevEntityKey = prevFirstBlock.getEntityAt(prevFirstBlock.getLength() - 1);
+    let rangeToReplace;
+    //
+    prevFirstBlock.findEntityRanges(
+      character => character.getEntity() === prevEntityKey,
+      (start, end) => {
+        rangeToReplace = SelectionState
+          .createEmpty(prevFirstBlock.getKey())
+          .set('anchorOffset', start)
+          .set('focusOffset', end);
+      }
+    );
+    const nextEntityKey = Entity.create('OPTION', 'IMMUTABLE', {});
+    const nextContentState = Modifier.replaceText(
+      prevContentState,
+      rangeToReplace,
+      text,
+      null,
+      nextEntityKey
+    );
+    return EditorState.moveFocusToEnd(
+      EditorState.push(
+        prevEditorState,
+        nextContentState,
+        'apply-entity'
+      )
+    );
+  }
 
   // TODO: Link CWRP for new filters
   // TODO: Link state changes for onFiltersChange
