@@ -143,34 +143,37 @@ function getDecorator() {
 function mapEtitorState(prevEditorState, nextEditorState) {
   const prevFirstBlock = prevEditorState.getCurrentContent().getFirstBlock();
   const nextFirstBlock = nextEditorState.getCurrentContent().getFirstBlock();
-  if (prevFirstBlock.getLength() >= nextFirstBlock.getLength()) {
-    // This is backspace case.
-    // Should update Entity data for new query
-    return nextEditorState;
-  }
   const expectingEntityType = 'AUTOCOMPLETE_OPTIONS';
-  const prevSelection = prevEditorState.getSelection();
-  const nextSelection = nextEditorState.getSelection();
-  const nextQuery = nextFirstBlock.getText().slice(
-    prevSelection.getStartOffset(),
-    nextSelection.getEndOffset()
-  );
   //
+  let query = '';
+  nextFirstBlock.findEntityRanges(character => {
+    const entityKey = character.getEntity();
+    return (
+      entityKey !== null &&
+      Entity.get(entityKey).getType() === 'AUTOCOMPLETE_OPTIONS'
+    );
+  }, (start, end) => {
+    query = nextFirstBlock.getText().slice(start,end);
+  });
   let entityKey = prevFirstBlock.getEntityAt(prevFirstBlock.getLength() - 1);
-  if (entityKey && Entity.get(entityKey).getType() === expectingEntityType) {
+  if (prevFirstBlock.getLength() >= nextFirstBlock.getLength() ||
+      (entityKey && Entity.get(entityKey).getType() === expectingEntityType)) {
     console.log('update-query');
-    const { query } = Entity.get(entityKey).getData();
-    Entity.mergeData(entityKey, {
-      query: `${query}${nextQuery}`,
-    });
+    if (entityKey) {
+      Entity.mergeData(entityKey, {
+        query,
+      });
+    }
     return nextEditorState;
   } else {
     console.log('apply-entity');
-    const query = nextFirstBlock.getText().slice(
+    const prevSelection = prevEditorState.getSelection();
+    const nextSelection = nextEditorState.getSelection();
+    query = nextFirstBlock.getText().slice(
       prevSelection.getStartOffset(),
       nextSelection.getEndOffset()
     );
-    entityKey = Entity.create(expectingEntityType, 'MUTABLE', { query: nextQuery });
+    entityKey = Entity.create(expectingEntityType, 'MUTABLE', { query });
     const nextContentState = Modifier.applyEntity(
       nextEditorState.getCurrentContent(),
       SelectionState
