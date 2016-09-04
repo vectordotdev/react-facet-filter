@@ -36,7 +36,9 @@ function getContentState(filters) {
       contentState = Modifier.applyEntity(
         contentState,
         selectionState,
-        Entity.create(type, 'IMMUTABLE', {})
+        Entity.create(type, 'IMMUTABLE', {
+          text: it,
+        })
       );
     });
 
@@ -246,6 +248,7 @@ class FacetFilter extends Component {
   };
 
   handleEditorRef = (editor) => { this.editor = editor; };
+  handlePublishEditorStateToFilters = this.publishEditorStateToFilters.bind(this);
   focus = () => this.editor.focus();
   onChange = (nextEditorState) => {
     this.setState(state => ({
@@ -255,7 +258,7 @@ class FacetFilter extends Component {
   onUpdateSelectionState = (prevEntityKey, text, textEntityType) => {
     this.setState(state => ({
       editorState: this.updateSelectionFromAutoComplete(state.editorState, prevEntityKey, text, textEntityType),
-    }))
+    }), this.handlePublishEditorStateToFilters)
   };
   logState = () => console.log(this.state.editorState.toJS(), this.state.editorState.getSelection().toJS());
 
@@ -351,7 +354,9 @@ class FacetFilter extends Component {
           .set('focusOffset', end);
       }
     );
-    const nextEntityKey = Entity.create(textEntityType, 'IMMUTABLE', {});
+    const nextEntityKey = Entity.create(textEntityType, 'IMMUTABLE', {
+      text,
+    });
     const nextContentState = Modifier.replaceText(
       prevContentState,
       rangeToReplace,
@@ -366,8 +371,47 @@ class FacetFilter extends Component {
     );
   }
 
+  getFiltersFromEditorState(editorState) {
+    const NullEntity = {
+      getData() { return {text: ''}; },
+    };
+
+    return editorState
+      .getCurrentContent()
+      .getFirstBlock()
+      .getCharacterList()
+      .map(character => character.getEntity())
+      .filter(it => it !== null)
+      .toOrderedSet()
+      .map(entityKey => Entity.get(entityKey))
+      .groupBy(function grouper(entity) {
+        if (this.count === 3) {
+          this.index += 1;
+          this.count = 1;
+        } else {
+          this.count += 1;
+        }
+        return this.index;
+      }, {
+        index: 0,
+        count: 0,
+      })
+      .valueSeq()
+      .map(entities => entities.toIndexedSeq())
+      .map(entities => ({
+        category: entities.get(0).getData().text,
+        operator: (entities.get(1) || NullEntity).getData().text,
+        option: (entities.get(2) || NullEntity).getData().text,
+      }))
+      .toJS();
+  }
+
+  publishEditorStateToFilters() {
+    const filters = this.getFiltersFromEditorState(this.state.editorState);
+    this.props.onFiltersChange(filters);
+  }
+
   // TODO: Link CWRP for new filters
-  // TODO: Link state changes for onFiltersChange
 
   render() {
     const styles = {
@@ -428,7 +472,7 @@ class DraftjsPOCDemo extends Component {
     ],
   };
 
-  handleFiltersChange = (filters) => this.setState({ filters });
+  handleFiltersChange = (filters) => console.log(filters) || this.setState({ filters });
 
   render() {
     return (
