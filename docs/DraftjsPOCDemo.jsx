@@ -263,9 +263,11 @@ class FacetFilter extends Component {
     const prevFirstBlock = prevEditorState.getCurrentContent().getFirstBlock();
     const nextFirstBlock = nextEditorState.getCurrentContent().getFirstBlock();
     //
+    const prevSelection = prevEditorState.getSelection();
+    console.log(prevFirstBlock.getKey(), prevSelection.getFocusKey(), prevFirstBlock.getEntityAt(prevSelection.getEndOffset() - 1));
     let prevEntityKey = (
       prevFirstBlock.getLength() > 0 ?
-      prevFirstBlock.getEntityAt(prevFirstBlock.getLength() - 1) :
+      prevFirstBlock.getEntityAt(prevSelection.getEndOffset() - 1) :
       null
     );
     let expectingEntityType = 'AUTOCOMPLETE_CATEGORIES'
@@ -321,12 +323,16 @@ class FacetFilter extends Component {
           .set('focusOffset', nextSelection.getEndOffset()),
         nextEntityKey
       );
-      return EditorState.moveFocusToEnd(
+      return EditorState.forceSelection(
         EditorState.push(
           nextEditorState,
           nextContentState,
           'apply-entity'
-        )
+        ),
+        SelectionState
+          .createEmpty(nextFirstBlock.getKey())
+          .set('anchorOffset', nextSelection.getEndOffset())
+          .set('focusOffset', nextSelection.getEndOffset())
       );
     }
   }
