@@ -359,12 +359,10 @@ class FacetFilter extends Component {
       null,
       nextEntityKey
     );
-    return EditorState.moveFocusToEnd(
-      EditorState.push(
-        prevEditorState,
-        nextContentState,
-        'apply-entity'
-      )
+    return EditorState.push(
+      prevEditorState,
+      nextContentState,
+      'apply-entity'
     );
   }
 
