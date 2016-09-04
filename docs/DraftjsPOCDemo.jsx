@@ -121,6 +121,74 @@ function getDecorator() {
             const entityKey = character.getEntity();
             return (
               entityKey !== null &&
+              Entity.get(entityKey).getType() === 'AUTOCOMPLETE_CATEGORIES'
+            );
+          },
+          callback
+        );
+      },
+      component(props) {
+        // TODO: render dropdown for auto-complete here
+        const { onUpdateSelection } = Entity.get(props.entityKey).getData();
+        const query = props.decoratedText;
+        const handleClick = text => event => {
+          event.preventDefault();
+          event.stopPropagation();
+          onUpdateSelection(text, 'CATEGORY');
+        };
+        return (
+          <span data-query={query} style={{ border: '5px solid green', position: 'relative' }}>
+            {props.children}
+            <ul style={{position: 'absolute', top: '20px', left: '0'}} contentEditable={false}>
+              <li onClick={handleClick('category a')}>category a</li>
+              <li onClick={handleClick('category c')}>category c</li>
+              <li onClick={handleClick('category b')}>category b</li>
+            </ul>
+          </span>
+        );
+      },
+    },
+    {
+      strategy(contentBlock, callback) {
+        contentBlock.findEntityRanges(
+          (character) => {
+            const entityKey = character.getEntity();
+            return (
+              entityKey !== null &&
+              Entity.get(entityKey).getType() === 'AUTOCOMPLETE_OPERATORS'
+            );
+          },
+          callback
+        );
+      },
+      component(props) {
+        // TODO: render dropdown for auto-complete here
+        const { onUpdateSelection } = Entity.get(props.entityKey).getData();
+        const query = props.decoratedText;
+        const handleClick = text => event => {
+          event.preventDefault();
+          event.stopPropagation();
+          onUpdateSelection(text, 'OPERATOR');
+        };
+        return (
+          <span data-query={query} style={{ border: '5px solid red', position: 'relative' }}>
+            {props.children}
+            <ul style={{position: 'absolute', top: '20px', left: '0'}} contentEditable={false}>
+              <li onClick={handleClick('=')}>{'='}</li>
+              <li onClick={handleClick('>=')}>{'>='}</li>
+              <li onClick={handleClick('<=')}>{'<='}</li>
+            </ul>
+          </span>
+        );
+      },
+    },
+    {
+      strategy(contentBlock, callback) {
+        contentBlock.findEntityRanges(
+          (character) => {
+            const entityKey = character.getEntity();
+            return (
+              entityKey !== null &&
               Entity.get(entityKey).getType() === 'AUTOCOMPLETE_OPTIONS'
             );
           },
@@ -134,7 +202,7 @@ function getDecorator() {
         const handleClick = text => event => {
           event.preventDefault();
           event.stopPropagation();
-          onUpdateSelection(text);
+          onUpdateSelection(text, 'OPTION');
         };
         return (
           <span data-query={query} style={{ border: '5px solid blue', position: 'relative' }}>
@@ -184,9 +252,9 @@ class FacetFilter extends Component {
       editorState: this.getNextEditorState(state.editorState, nextEditorState),
     }))
   };
-  onUpdateSelectionState = (text) => {
+  onUpdateSelectionState = (text, textEntityType) => {
     this.setState(state => ({
-      editorState: this.updateSelectionFromAutoComplete(state.editorState, text),
+      editorState: this.updateSelectionFromAutoComplete(state.editorState, text, textEntityType),
     }))
   };
   logState = () => console.log(this.state.editorState.toJS(), this.state.editorState.getSelection().toJS());
@@ -194,9 +262,28 @@ class FacetFilter extends Component {
   getNextEditorState(prevEditorState, nextEditorState) {
     const prevFirstBlock = prevEditorState.getCurrentContent().getFirstBlock();
     const nextFirstBlock = nextEditorState.getCurrentContent().getFirstBlock();
-    const expectingEntityType = 'AUTOCOMPLETE_OPTIONS';
-    let prevEntityKey = prevFirstBlock.getEntityAt(prevFirstBlock.getLength() - 1);
+    //
+    let prevEntityKey = (
+      prevFirstBlock.getLength() > 0 ?
+      prevFirstBlock.getEntityAt(prevFirstBlock.getLength() - 1) :
+      null
+    );
+    let expectingEntityType = 'AUTOCOMPLETE_CATEGORIES'
     if (prevEntityKey) {
+      const prevEntityType = Entity.get(prevEntityKey).getType();
+      expectingEntityType = ((prevEntityType) => {
+        switch (prevEntityType) {
+          case 'CATEGORY':
+            return 'AUTOCOMPLETE_OPERATORS';
+          case 'OPERATOR':
+            return 'AUTOCOMPLETE_OPTIONS';
+          case 'OPTION':
+            return 'AUTOCOMPLETE_CATEGORIES';
+          default:
+            return prevEntityType;
+        }
+      })(prevEntityType);
+      //
       let found = false;
       nextFirstBlock.findEntityRanges(
         character => character.getEntity() === prevEntityKey,
@@ -207,6 +294,8 @@ class FacetFilter extends Component {
         Entity.replaceData(prevEntityKey, {});
         prevEntityKey = null;
       }
+    } else {
+      expectingEntityType = 'AUTOCOMPLETE_CATEGORIES';
     }
     //
     if (prevFirstBlock.getLength() >= nextFirstBlock.getLength() ||
@@ -242,7 +331,7 @@ class FacetFilter extends Component {
     }
   }
 
-  updateSelectionFromAutoComplete(prevEditorState, text) {
+  updateSelectionFromAutoComplete(prevEditorState, text, textEntityType) {
     const prevContentState = prevEditorState.getCurrentContent();
     const prevFirstBlock = prevContentState.getFirstBlock();
     const prevEntityKey = prevFirstBlock.getEntityAt(prevFirstBlock.getLength() - 1);
@@ -257,7 +346,7 @@ class FacetFilter extends Component {
           .set('focusOffset', end);
       }
     );
-    const nextEntityKey = Entity.create('OPTION', 'IMMUTABLE', {});
+    const nextEntityKey = Entity.create(textEntityType, 'IMMUTABLE', {});
     const nextContentState = Modifier.replaceText(
       prevContentState,
       rangeToReplace,
