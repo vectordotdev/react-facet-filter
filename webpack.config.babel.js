@@ -85,7 +85,7 @@ const siteCommon = {
 
 if (TARGET === 'start') {
   module.exports = merge(common, siteCommon, {
-    devtool: 'eval-source-map',
+    devtool: 'inline-source-map',
     entry: {
       docs: [config.paths.docs]
     },
