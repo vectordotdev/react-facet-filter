@@ -224,6 +224,12 @@ function getDecorator() {
   ]);
 }
 
+const FILTER_ENTITY_TYPES = Immutable.List([
+  'CATEGORY',
+  'OPERATOR',
+  'OPTION',
+]);
+
 function createEditorStateFromFilters(filters) {
   return EditorState.moveSelectionToEnd(
     EditorState.createWithContent(
@@ -231,6 +237,16 @@ function createEditorStateFromFilters(filters) {
       getDecorator()
     )
   );
+}
+
+function getFilterEntitiesCount(contentBlock) {
+  return contentBlock
+    .getCharacterList()
+    .map(character => character.getEntity())
+    .filter(entityKey => entityKey !== null)
+    .map(entityKey => Entity.get(entityKey).getType())
+    .filter(entityType => FILTER_ENTITY_TYPES.includes(entityType))
+    .count();
 }
 
 class FacetFilter extends Component {
@@ -254,9 +270,19 @@ class FacetFilter extends Component {
   handlePublishEditorStateToFilters = this.publishEditorStateToFilters.bind(this);
   focus = () => this.editor.focus();
   onChange = (nextEditorState) => {
-    this.setState(state => ({
-      editorState: this.getNextEditorState(state.editorState, nextEditorState),
-    }))
+    let isFilterEntityRemoved;
+    this.setState(state => {
+      const editorStateResult = this.getNextEditorState(state.editorState, nextEditorState);
+      isFilterEntityRemoved = editorStateResult.isFilterEntityRemoved;
+      return {
+        editorState: editorStateResult.nextEditorState,
+      };
+    }, () => {
+      if (isFilterEntityRemoved) {
+        console.log('isFilterEntityRemoved')
+        this.handlePublishEditorStateToFilters();
+      }
+    });
   };
   onUpdateSelectionState = (prevEntityKey, text, textEntityType) => {
     this.setState(state => ({
@@ -306,13 +332,19 @@ class FacetFilter extends Component {
       expectingEntityType = 'AUTOCOMPLETE_CATEGORIES';
     }
     //
-    if (prevFirstBlock.getLength() >= nextFirstBlock.getLength() ||
-        (prevEntityKey && Entity.get(prevEntityKey).getType() === expectingEntityType)) {
-      console.log('update entiy selection range');
-      if (prevEntityKey) {
-        // TODO: update entiy selection range
-      }
-      return nextEditorState;
+    if (prevFirstBlock.getLength() >= nextFirstBlock.getLength()) {
+      const isFilterEntityRemoved = (
+        getFilterEntitiesCount(prevFirstBlock) > getFilterEntitiesCount(nextFirstBlock)
+      );
+      return {
+        isFilterEntityRemoved,
+        nextEditorState,
+      };
+    } else if (prevEntityKey && Entity.get(prevEntityKey).getType() === expectingEntityType) {
+      return {
+        isFilterEntityRemoved: false,
+        nextEditorState,
+      };
     } else {
       console.log('apply new entity');
       const prevSelection = prevEditorState.getSelection();
@@ -329,17 +361,20 @@ class FacetFilter extends Component {
           .set('focusOffset', nextSelection.getEndOffset()),
         nextEntityKey
       );
-      return EditorState.forceSelection(
-        EditorState.push(
-          nextEditorState,
-          nextContentState,
-          'apply-entity'
+      return {
+        isFilterEntityRemoved: false,
+        nextEditorState: EditorState.forceSelection(
+          EditorState.push(
+            nextEditorState,
+            nextContentState,
+            'apply-entity'
+          ),
+          SelectionState
+            .createEmpty(nextFirstBlock.getKey())
+            .set('anchorOffset', nextSelection.getEndOffset())
+            .set('focusOffset', nextSelection.getEndOffset())
         ),
-        SelectionState
-          .createEmpty(nextFirstBlock.getKey())
-          .set('anchorOffset', nextSelection.getEndOffset())
-          .set('focusOffset', nextSelection.getEndOffset())
-      );
+      };
     }
   }
 
