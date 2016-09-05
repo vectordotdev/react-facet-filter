@@ -3,7 +3,9 @@ import React, {
   PropTypes,
 } from 'react'
 
-import Immutable from 'immutable'
+import {
+  fromJS,
+} from 'immutable'
 
 import {
   Editor,
@@ -17,7 +19,9 @@ import {
 
 function getContentState(filters) {
   let contentState = ContentState.createFromText(
-    filters.map(({ category, operator='', option='' }) => `${category}${operator}${option}`).join(' ')
+    filters.map(({ category, operator='', option='' }) => (
+      `${category}${operator}${option}`
+    )).join(' ')
   );
   const contentBlock = contentState.getFirstBlock();
   //
@@ -144,7 +148,7 @@ function getDecorator() {
         return (
           <span data-query={query} style={{ border: '5px solid green', position: 'relative' }}>
             {props.children}
-            <ul style={{position: 'absolute', top: '20px', left: '0'}} contentEditable={false}>
+            <ul style={{ position: 'absolute', top: '20px', left: '0' }} contentEditable={false}>
               <li onClick={handleClick('category a')}>category a</li>
               <li onClick={handleClick('category c')}>category c</li>
               <li onClick={handleClick('category b')}>category b</li>
@@ -178,7 +182,7 @@ function getDecorator() {
         return (
           <span data-query={query} style={{ border: '5px solid red', position: 'relative' }}>
             {props.children}
-            <ul style={{position: 'absolute', top: '20px', left: '0'}} contentEditable={false}>
+            <ul style={{ position: 'absolute', top: '20px', left: '0' }} contentEditable={false}>
               <li onClick={handleClick('=')}>{'='}</li>
               <li onClick={handleClick('>=')}>{'>='}</li>
               <li onClick={handleClick('<=')}>{'<='}</li>
@@ -212,7 +216,7 @@ function getDecorator() {
         return (
           <span data-query={query} style={{ border: '5px solid blue', position: 'relative' }}>
             {props.children}
-            <ul style={{position: 'absolute', top: '20px', left: '0'}} contentEditable={false}>
+            <ul style={{ position: 'absolute', top: '20px', left: '0' }} contentEditable={false}>
               <li onClick={handleClick('option 1')}>option 1</li>
               <li onClick={handleClick('option 3')}>option 3</li>
               <li onClick={handleClick('option 2')}>option 2</li>
@@ -224,11 +228,24 @@ function getDecorator() {
   ]);
 }
 
-const FILTER_ENTITY_TYPES = Immutable.List([
+const FILTER_ENTITY_TYPES = fromJS([
   'CATEGORY',
   'OPERATOR',
   'OPTION',
 ]);
+
+function getNextEntityType(prevEntityType) {
+  switch (prevEntityType) {
+    case 'CATEGORY':
+      return 'AUTOCOMPLETE_OPERATORS';
+    case 'OPERATOR':
+      return 'AUTOCOMPLETE_OPTIONS';
+    case 'OPTION':
+      return 'AUTOCOMPLETE_CATEGORIES';
+    default:
+      return prevEntityType;
+  }
+}
 
 function createEditorStateFromFilters(filters) {
   return EditorState.moveSelectionToEnd(
@@ -266,9 +283,7 @@ class FacetFilter extends Component {
     editorState: createEditorStateFromFilters(this.props.filters),
   };
 
-  handleEditorRef = (editor) => { this.editor = editor; };
   handlePublishEditorStateToFilters = this.publishEditorStateToFilters.bind(this);
-  focus = () => this.editor.focus();
   onChange = (nextEditorState) => {
     let isFilterEntityRemoved;
     this.setState(state => {
@@ -279,24 +294,26 @@ class FacetFilter extends Component {
       };
     }, () => {
       if (isFilterEntityRemoved) {
-        console.log('isFilterEntityRemoved')
         this.handlePublishEditorStateToFilters();
       }
     });
   };
   onUpdateSelectionState = (prevEntityKey, text, textEntityType) => {
     this.setState(state => ({
-      editorState: this.updateSelectionFromAutoComplete(state.editorState, prevEntityKey, text, textEntityType),
+      editorState: this.updateSelectionFromAutoComplete(
+        state.editorState,
+        prevEntityKey,
+        text,
+        textEntityType
+      ),
     }), this.handlePublishEditorStateToFilters)
   };
-  logState = () => console.log(this.state.editorState.toJS(), this.state.editorState.getSelection().toJS());
 
   getNextEditorState(prevEditorState, nextEditorState) {
     const prevFirstBlock = prevEditorState.getCurrentContent().getFirstBlock();
     const nextFirstBlock = nextEditorState.getCurrentContent().getFirstBlock();
     //
     const prevSelection = prevEditorState.getSelection();
-    console.log(prevFirstBlock.getKey(), prevSelection.getFocusKey(), prevFirstBlock.getEntityAt(prevSelection.getEndOffset() - 1));
     let prevEntityKey = (
       prevFirstBlock.getLength() > 0 ?
       prevFirstBlock.getEntityAt(prevSelection.getEndOffset() - 1) :
@@ -305,23 +322,12 @@ class FacetFilter extends Component {
     let expectingEntityType = 'AUTOCOMPLETE_CATEGORIES'
     if (prevEntityKey) {
       const prevEntityType = Entity.get(prevEntityKey).getType();
-      expectingEntityType = ((prevEntityType) => {
-        switch (prevEntityType) {
-          case 'CATEGORY':
-            return 'AUTOCOMPLETE_OPERATORS';
-          case 'OPERATOR':
-            return 'AUTOCOMPLETE_OPTIONS';
-          case 'OPTION':
-            return 'AUTOCOMPLETE_CATEGORIES';
-          default:
-            return prevEntityType;
-        }
-      })(prevEntityType);
+      expectingEntityType = getNextEntityType(prevEntityType);
       //
       let found = false;
       nextFirstBlock.findEntityRanges(
         character => character.getEntity() === prevEntityKey,
-        _ => { found = true }
+        () => { found = true }
       );
       if (!found) {
         // Entity was removed, so we need to delete data
@@ -346,8 +352,6 @@ class FacetFilter extends Component {
         nextEditorState,
       };
     } else {
-      console.log('apply new entity');
-      const prevSelection = prevEditorState.getSelection();
       const nextSelection = nextEditorState.getSelection();
       //
       const nextEntityKey = Entity.create(expectingEntityType, 'MUTABLE', {
@@ -411,7 +415,11 @@ class FacetFilter extends Component {
 
   getFiltersFromEditorState(editorState) {
     const NullEntity = {
-      getData() { return {text: ''}; },
+      getData() {
+        return {
+          text: ''
+        };
+      },
     };
 
     return editorState
@@ -422,7 +430,7 @@ class FacetFilter extends Component {
       .filter(it => it !== null)
       .toOrderedSet()
       .map(entityKey => Entity.get(entityKey))
-      .groupBy(function grouper(entity) {
+      .groupBy(function grouper() {
         if (this.count === 3) {
           this.index += 1;
           this.count = 1;
@@ -436,7 +444,7 @@ class FacetFilter extends Component {
       })
       .valueSeq()
       .map(entities => entities.toIndexedSeq())
-      .map(entities => Immutable.Map({
+      .map(entities => fromJS({
         category: entities.get(0).getData().text,
         operator: (entities.get(1) || NullEntity).getData().text,
         option: (entities.get(2) || NullEntity).getData().text,
@@ -450,7 +458,7 @@ class FacetFilter extends Component {
 
   // TODO: Link CWRP for new filters
   componentWillReceiveProps(nextProps) {
-    const nextFiltersFromProps = Immutable.fromJS(nextProps.filters);
+    const nextFiltersFromProps = fromJS(nextProps.filters);
     const nextFiltersFromState = this.getFiltersFromEditorState(this.state.editorState)
 
     const isFiltersMatch = nextFiltersFromProps.equals(nextFiltersFromState);
@@ -460,6 +468,51 @@ class FacetFilter extends Component {
       });
     }
   }
+
+  render() {
+    return (
+      <Editor
+        // TODO: this.props
+        editorState={this.state.editorState}
+        onChange={this.onChange}
+        placeholder="Write a tweet..."
+        spellCheck
+      />
+    );
+  }
+}
+
+
+class DraftjsPOCDemo extends Component {
+  state = {
+    filters: [
+      {
+        category: 'category',
+        operator: ':',
+        option: 'option',
+      },
+      {
+        category: 'category2th',
+        operator: '=>',
+        option: undefined,
+      },
+    ],
+  };
+
+  handleFiltersChange = (filters) => {
+    console.log(filters);
+    this.setState({ filters });
+  }
+
+  resetFilters = () => this.setState({
+    filters: [
+      {
+        category: 'newCategory',
+        operator: ':=',
+        option: 'newOption',
+      },
+    ],
+  })
 
   render() {
     const styles = {
@@ -484,63 +537,14 @@ class FacetFilter extends Component {
     return (
       <div style={styles.root}>
         <div style={styles.editor} onClick={this.focus}>
-          <Editor
-            ref={this.handleEditorRef}
-            editorState={this.state.editorState}
-            onChange={this.onChange}
-            placeholder="Write a tweet..."
-            spellCheck
+          <FacetFilter
+            filters={this.state.filters}
+            onFiltersChange={this.handleFiltersChange}
           />
         </div>
         <input
-          onClick={this.logState}
-          style={styles.button}
-          type="button"
-          value="Log State"
-        />
-      </div>
-    );
-  }
-}
-
-
-class DraftjsPOCDemo extends Component {
-  state = {
-    filters: [
-      {
-        category: 'category',
-        operator: ':',
-        option: 'option',
-      },
-      {
-        category: 'category2th',
-        operator: '=>',
-        option: undefined,
-      },
-    ],
-  };
-
-  handleFiltersChange = (filters) => console.log(filters) || this.setState({ filters });
-
-  resetFilters = () => this.setState({
-    filters: [
-      {
-        category: 'newCategory',
-        operator: ':=',
-        option: 'newOption',
-      },
-    ],
-  })
-
-  render() {
-    return (
-      <div>
-        <FacetFilter
-          filters={this.state.filters}
-          onFiltersChange={this.handleFiltersChange}
-        />
-        <input
           onClick={this.resetFilters}
+          style={styles.button}
           type="button"
           value="Reset filters"
         />
