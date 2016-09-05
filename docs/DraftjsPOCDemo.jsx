@@ -2,6 +2,9 @@ import React, {
   Component,
   PropTypes,
 } from 'react'
+
+import Immutable from 'immutable'
+
 import {
   Editor,
   Modifier,
@@ -221,8 +224,13 @@ function getDecorator() {
   ]);
 }
 
-function mapEtitorState(prevEditorState, nextEditorState) {
-
+function createEditorStateFromFilters(filters) {
+  return EditorState.moveSelectionToEnd(
+    EditorState.createWithContent(
+      getContentState(filters),
+      getDecorator()
+    )
+  );
 }
 
 class FacetFilter extends Component {
@@ -239,12 +247,7 @@ class FacetFilter extends Component {
   };
 
   state = {
-    editorState: EditorState.moveSelectionToEnd(
-      EditorState.createWithContent(
-        getContentState(this.props.filters),
-        getDecorator()
-      )
-    ),
+    editorState: createEditorStateFromFilters(this.props.filters),
   };
 
   handleEditorRef = (editor) => { this.editor = editor; };
@@ -398,20 +401,30 @@ class FacetFilter extends Component {
       })
       .valueSeq()
       .map(entities => entities.toIndexedSeq())
-      .map(entities => ({
+      .map(entities => Immutable.Map({
         category: entities.get(0).getData().text,
         operator: (entities.get(1) || NullEntity).getData().text,
         option: (entities.get(2) || NullEntity).getData().text,
-      }))
-      .toJS();
+      }));
   }
 
   publishEditorStateToFilters() {
-    const filters = this.getFiltersFromEditorState(this.state.editorState);
+    const filters = this.getFiltersFromEditorState(this.state.editorState).toJS();
     this.props.onFiltersChange(filters);
   }
 
   // TODO: Link CWRP for new filters
+  componentWillReceiveProps(nextProps) {
+    const nextFiltersFromProps = Immutable.fromJS(nextProps.filters);
+    const nextFiltersFromState = this.getFiltersFromEditorState(this.state.editorState)
+
+    const isFiltersMatch = nextFiltersFromProps.equals(nextFiltersFromState);
+    if (!isFiltersMatch) {
+      this.setState({
+        editorState: createEditorStateFromFilters(nextProps.filters),
+      });
+    }
+  }
 
   render() {
     const styles = {
@@ -474,12 +487,27 @@ class DraftjsPOCDemo extends Component {
 
   handleFiltersChange = (filters) => console.log(filters) || this.setState({ filters });
 
+  resetFilters = () => this.setState({
+    filters: [
+      {
+        category: 'newCategory',
+        operator: ':=',
+        option: 'newOption',
+      },
+    ],
+  })
+
   render() {
     return (
       <div>
         <FacetFilter
           filters={this.state.filters}
           onFiltersChange={this.handleFiltersChange}
+        />
+        <input
+          onClick={this.resetFilters}
+          type="button"
+          value="Reset filters"
         />
       </div>
     );
