@@ -4,11 +4,13 @@
   "version": "0.1.0",
   "author": "Timber.io",
   "files": [
-    "LICENSE"
+    "LICENSE",
+    "lib/",
+    "src/lib/"
   ],
   "main": "lib",
-  "module": "lib",
-  "jsnext:main": "lib",
+  "module": "src/lib",
+  "jsnext:main": "src/lib",
   "repository": {
     "type": "git",
     "url": "https://github.com/timberio/react-facet-filter.git"
@@ -26,9 +28,11 @@
   ],
   "license": "MIT",
   "devDependencies": {
+    "babel-cli": "^6.14.0",
     "babel-core": "^6.14.0",
     "babel-eslint": "^6.1.2",
     "babel-plugin-transform-class-properties": "^6.11.5",
+    "babel-plugin-transform-runtime": "^6.15.0",
     "babel-preset-latest": "^6.14.0",
     "babel-preset-react": "^6.11.1",
     "cross-env": "^2.0.1",
@@ -55,12 +59,18 @@
       "pre-push": "npm run test:once"
     }
   },
+  "config": {
+    "ghooks": {
+      "pre-push": "npm run test:once"
+    }
+  },
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test --env=jsdom",
     "eject": "react-scripts eject",
     "prebuild:lib": "rimraf ./lib",
+    "build:lib": "babel ./src/lib --out-dir ./lib",
     "test:once": "cross-env CI=true npm test",
     "test:lint": "eslint . --ext .js --ext .jsx --ignore-pattern docs --cache"
   }
