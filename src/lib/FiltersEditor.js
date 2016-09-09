@@ -18,6 +18,39 @@ import {
 
 import * as util from './util/FiltersDraft'
 
+function getFoundAndMatchedExpectingEntityType(prevFirstBlock, nextFirstBlock, prevSelection) {
+  let prevEntityKey = (
+    prevFirstBlock.getLength() > 0 ?
+    prevFirstBlock.getEntityAt(prevSelection.getEndOffset() - 1) :
+    null
+  );
+  let foundAndMatched = false;
+  let expectingEntityType;
+  if (prevEntityKey) {
+    let found;
+    nextFirstBlock.findEntityRanges(
+      character => character.getEntity() === prevEntityKey,
+      () => { found = true }
+    );
+    if (found) {
+      const prevEntityType = Entity.get(prevEntityKey).getType();
+      expectingEntityType = util.getNextEntityType(prevEntityType);
+      foundAndMatched = prevEntityType === expectingEntityType;
+    } else {
+      // Entity was removed, so we need to delete data
+      Entity.replaceData(prevEntityKey, {});
+      prevEntityKey = null;
+      expectingEntityType = util.FILTER_ENTITY_TYPE_AUTOCOMPLETE_CATEGORIES;
+    }
+  } else {
+    expectingEntityType = util.FILTER_ENTITY_TYPE_AUTOCOMPLETE_CATEGORIES;
+  }
+  return {
+    foundAndMatched,
+    expectingEntityType
+  };
+}
+
 export default class FiltersEditor extends Component {
 
   static propTypes = {
@@ -65,31 +98,6 @@ export default class FiltersEditor extends Component {
     const prevFirstBlock = prevEditorState.getCurrentContent().getFirstBlock();
     const nextFirstBlock = nextEditorState.getCurrentContent().getFirstBlock();
     //
-    const prevSelection = prevEditorState.getSelection();
-    let prevEntityKey = (
-      prevFirstBlock.getLength() > 0 ?
-      prevFirstBlock.getEntityAt(prevSelection.getEndOffset() - 1) :
-      null
-    );
-    let expectingEntityType = 'AUTOCOMPLETE_CATEGORIES'
-    if (prevEntityKey) {
-      const prevEntityType = Entity.get(prevEntityKey).getType();
-      expectingEntityType = util.getNextEntityType(prevEntityType);
-      //
-      let found = false;
-      nextFirstBlock.findEntityRanges(
-        character => character.getEntity() === prevEntityKey,
-        () => { found = true }
-      );
-      if (!found) {
-        // Entity was removed, so we need to delete data
-        Entity.replaceData(prevEntityKey, {});
-        prevEntityKey = null;
-      }
-    } else {
-      expectingEntityType = 'AUTOCOMPLETE_CATEGORIES';
-    }
-    //
     if (prevFirstBlock.getLength() >= nextFirstBlock.getLength()) {
       const isFilterEntityRemoved = (
         util.getFilterEntitiesCount(prevFirstBlock) > util.getFilterEntitiesCount(nextFirstBlock)
@@ -98,7 +106,17 @@ export default class FiltersEditor extends Component {
         isFilterEntityRemoved,
         nextEditorState,
       };
-    } else if (prevEntityKey && Entity.get(prevEntityKey).getType() === expectingEntityType) {
+    }
+    const prevSelection = prevEditorState.getSelection();
+    const {
+      foundAndMatched,
+      expectingEntityType
+    } = getFoundAndMatchedExpectingEntityType(
+      prevFirstBlock,
+      nextFirstBlock,
+      prevSelection
+    );
+    if (foundAndMatched) {
       return {
         isFilterEntityRemoved: false,
         nextEditorState,

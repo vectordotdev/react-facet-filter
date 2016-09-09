@@ -26,7 +26,7 @@ export function getContentState(filters) {
   let anchorOffset = 0;
   let focusOffset = 0;
   filters.forEach(({ category, operator='', option='' }) => {
-    [['CATEGORY', category], ['OPERATOR', operator], ['OPTION', option]].forEach(([type, it]) => {
+    [[FILTER_ENTITY_TYPE_CATEGOTY, category], [FILTER_ENTITY_TYPE_OPERATOR, operator], [FILTER_ENTITY_TYPE_OPTION, option]].forEach(([type, it]) => {
       if (!it) {
         return;
       }
@@ -115,7 +115,7 @@ const AutocompleteCategories = ({ entityKey, decoratedText: query, children }) =
   const handleClick = text => event => {
     event.preventDefault();
     event.stopPropagation();
-    onUpdateSelection(entityKey, text, 'CATEGORY');
+    onUpdateSelection(entityKey, text, FILTER_ENTITY_TYPE_CATEGOTY);
   };
   return (
     <span data-query={query} style={{ border: '5px solid green', position: 'relative' }}>
@@ -140,7 +140,7 @@ const AutocompleteOperators = ({ entityKey, decoratedText: query, children }) =>
   const handleClick = text => event => {
     event.preventDefault();
     event.stopPropagation();
-    onUpdateSelection(entityKey, text, 'OPERATOR');
+    onUpdateSelection(entityKey, text, FILTER_ENTITY_TYPE_OPERATOR);
   };
   return (
     <span data-query={query} style={{ border: '5px solid red', position: 'relative' }}>
@@ -165,7 +165,7 @@ const AutocompleteOptions = ({ entityKey, decoratedText: query, children }) => {
   const handleClick = text => event => {
     event.preventDefault();
     event.stopPropagation();
-    onUpdateSelection(entityKey, text, 'OPTION');
+    onUpdateSelection(entityKey, text, FILTER_ENTITY_TYPE_OPTION);
   };
   return (
     <span data-query={query} style={{ border: '5px solid blue', position: 'relative' }}>
@@ -185,40 +185,34 @@ AutocompleteOptions.propTypes = {
   children: PropTypes.node.isRequired,
 }
 
-export function getDecorator() {
+function getDecorator() {
   return new CompositeDecorator([
     {
-      strategy: makeStrategyForEntityType('CATEGORY'),
+      strategy: makeStrategyForEntityType(FILTER_ENTITY_TYPE_CATEGOTY),
       component: Category,
     },
     {
-      strategy: makeStrategyForEntityType('OPERATOR'),
+      strategy: makeStrategyForEntityType(FILTER_ENTITY_TYPE_OPERATOR),
       component: Operator,
     },
     {
-      strategy: makeStrategyForEntityType('OPTION'),
+      strategy: makeStrategyForEntityType(FILTER_ENTITY_TYPE_OPTION),
       component: Option,
     },
     {
-      strategy: makeStrategyForEntityType('AUTOCOMPLETE_CATEGORIES'),
+      strategy: makeStrategyForEntityType(FILTER_ENTITY_TYPE_AUTOCOMPLETE_CATEGORIES),
       component: AutocompleteCategories,
     },
     {
-      strategy: makeStrategyForEntityType('AUTOCOMPLETE_OPERATORS'),
+      strategy: makeStrategyForEntityType(FILTER_ENTITY_TYPE_AUTOCOMPLETE_OPERATORS),
       component: AutocompleteOperators,
     },
     {
-      strategy: makeStrategyForEntityType('AUTOCOMPLETE_OPTIONS'),
+      strategy: makeStrategyForEntityType(FILTER_ENTITY_TYPE_AUTOCOMPLETE_OPTIONS),
       component: AutocompleteOptions,
     },
   ]);
 }
-
-export const FILTER_ENTITY_TYPES = fromJS([
-  'CATEGORY',
-  'OPERATOR',
-  'OPTION',
-]);
 
 export const NullEntity = {
   getData() {
@@ -228,14 +222,18 @@ export const NullEntity = {
   },
 };
 
+export const FILTER_ENTITY_TYPE_AUTOCOMPLETE_CATEGORIES = 'AUTOCOMPLETE_CATEGORIES';
+const FILTER_ENTITY_TYPE_AUTOCOMPLETE_OPERATORS = 'AUTOCOMPLETE_OPERATORS';
+const FILTER_ENTITY_TYPE_AUTOCOMPLETE_OPTIONS = 'AUTOCOMPLETE_OPTION';
+
 export function getNextEntityType(prevEntityType) {
   switch (prevEntityType) {
-    case 'CATEGORY':
-      return 'AUTOCOMPLETE_OPERATORS';
-    case 'OPERATOR':
-      return 'AUTOCOMPLETE_OPTIONS';
-    case 'OPTION':
-      return 'AUTOCOMPLETE_CATEGORIES';
+    case FILTER_ENTITY_TYPE_CATEGOTY:
+      return FILTER_ENTITY_TYPE_AUTOCOMPLETE_OPERATORS;
+    case FILTER_ENTITY_TYPE_OPERATOR:
+      return FILTER_ENTITY_TYPE_AUTOCOMPLETE_OPTIONS;
+    case FILTER_ENTITY_TYPE_OPTION:
+      return FILTER_ENTITY_TYPE_AUTOCOMPLETE_CATEGORIES;
     default:
       return prevEntityType;
   }
@@ -259,3 +257,13 @@ export function getFilterEntitiesCount(contentBlock) {
     .filter(entityType => FILTER_ENTITY_TYPES.includes(entityType))
     .count();
 }
+
+const FILTER_ENTITY_TYPE_CATEGOTY = 'CATEGORY';
+const FILTER_ENTITY_TYPE_OPERATOR = 'OPERATOR';
+const FILTER_ENTITY_TYPE_OPTION = 'OPTION';
+
+const FILTER_ENTITY_TYPES = fromJS([
+  FILTER_ENTITY_TYPE_CATEGOTY,
+  FILTER_ENTITY_TYPE_OPERATOR,
+  FILTER_ENTITY_TYPE_OPTION,
+]);
