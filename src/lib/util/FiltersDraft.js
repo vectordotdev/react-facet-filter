@@ -15,7 +15,7 @@ import {
   CompositeDecorator,
 } from 'draft-js'
 
-export function getContentState(filters) {
+function getContentState(filters, onRender) {
   let contentState = ContentState.createFromText(
     filters.map(({ category, operator='', option='' }) => (
       `${category}${operator}${option}`
@@ -26,7 +26,11 @@ export function getContentState(filters) {
   let anchorOffset = 0;
   let focusOffset = 0;
   filters.forEach(({ category, operator='', option='' }) => {
-    [[FILTER_ENTITY_TYPE_CATEGOTY, category], [FILTER_ENTITY_TYPE_OPERATOR, operator], [FILTER_ENTITY_TYPE_OPTION, option]].forEach(([type, it]) => {
+    [
+      [Category.entityType, category],
+      [Operator.entityType, operator],
+      [Option.entityType, option]
+    ].forEach(([entityType, it]) => {
       if (!it) {
         return;
       }
@@ -41,7 +45,8 @@ export function getContentState(filters) {
       contentState = Modifier.applyEntity(
         contentState,
         selectionState,
-        Entity.create(type, 'IMMUTABLE', {
+        Entity.create(entityType, 'IMMUTABLE', {
+          onRender,
           text: it,
         })
       );
@@ -52,6 +57,85 @@ export function getContentState(filters) {
   });
   return contentState;
 }
+
+function makeComponent({ displayName, componentType, entityType }) {
+  function Component({ entityKey, children }) {
+    const { onRender } = Entity.get(entityKey).getData();
+    return onRender(componentType, {
+      children,
+    });
+  };
+  Component.displayName = displayName;
+  Component.componentType = componentType;
+  Component.entityType = entityType;
+  Component.propTypes = {
+    entityKey: PropTypes.string.isRequired,
+    children: PropTypes.node.isRequired,
+  };
+  return Component;
+}
+
+const Category = makeComponent({
+  displayName: 'Category',
+  componentType: 'category',
+  entityType: 'CATEGORY',
+});
+
+const Operator = makeComponent({
+  displayName: 'Operator',
+  componentType: 'operator',
+  entityType: 'OPERATOR',
+});
+
+const Option = makeComponent({
+  displayName: 'Option',
+  componentType: 'option',
+  entityType: 'OPTION',
+});
+
+function makeAutocompleteComponent({ displayName, componentType, entityType, nextEntityType }) {
+  function AutocompleteComponent({ entityKey, decoratedText: query, children }) {
+    const { onRender, onUpdateSelection } = Entity.get(entityKey).getData();
+    const onSelect = text => {
+      onUpdateSelection(entityKey, nextEntityType, text);
+    };
+    return onRender(componentType, {
+      children,
+      query,
+      onSelect,
+    });
+  };
+  AutocompleteComponent.displayName = displayName;
+  AutocompleteComponent.componentType = componentType;
+  AutocompleteComponent.entityType = entityType;
+  AutocompleteComponent.propTypes = {
+    entityKey: PropTypes.string.isRequired,
+    decoratedText: PropTypes.string.isRequired,
+    children: PropTypes.node.isRequired,
+  };
+  return AutocompleteComponent;
+}
+
+const AutocompleteCategories = makeAutocompleteComponent({
+  displayName: 'AutocompleteCategories',
+  componentType: 'autocompleteCategories',
+  entityType: 'AUTOCOMPLETE_CATEGORIES',
+  nextEntityType: Category.entityType,
+});
+
+const AutocompleteOperators = makeAutocompleteComponent({
+  displayName: 'AutocompleteOperators',
+  componentType: 'autocompleteOperators',
+  entityType: 'AUTOCOMPLETE_OPERATORS',
+  nextEntityType: Operator.entityType,
+});
+
+const AutocompleteOptions = makeAutocompleteComponent({
+  displayName: 'AutocompleteOptions',
+  componentType: 'autocompleteOptions',
+  entityType: 'AUTOCOMPLETE_OPTIONS',
+  nextEntityType: Option.entityType,
+});
 
 function makeStrategyForEntityType(entityType) {
   return (contentBlock, callback) => {
@@ -68,185 +152,58 @@ function makeStrategyForEntityType(entityType) {
   }
 }
 
-const Category = ({ entityKey, children }) => {
-  const data = Entity.get(entityKey).getData();
-  return (
-    <span data={JSON.stringify(data)} style={{ border: '1px solid green' }}>
-      {children}
-    </span>
-  );
-}
-
-Category.propTypes = {
-  entityKey: PropTypes.string.isRequired,
-  children: PropTypes.node.isRequired,
-}
-
-const Operator = ({ entityKey, children }) => {
-  const data = Entity.get(entityKey).getData();
-  return (
-    <span data={JSON.stringify(data)} style={{ border: '1px solid red' }}>
-      {children}
-    </span>
-  );
-}
-
-Operator.propTypes = {
-  entityKey: PropTypes.string.isRequired,
-  children: PropTypes.node.isRequired,
-}
-
-const Option = ({ entityKey, children }) => {
-  const data = Entity.get(entityKey).getData();
-  return (
-    <span data={JSON.stringify(data)} style={{ border: '1px solid blue' }}>
-      {children}
-    </span>
-  );
-}
-
-Option.propTypes = {
-  entityKey: PropTypes.string.isRequired,
-  children: PropTypes.node.isRequired,
-}
-
-const AutocompleteCategories = ({ entityKey, decoratedText: query, children }) => {
-  const { onUpdateSelection } = Entity.get(entityKey).getData();
-  const handleClick = text => event => {
-    event.preventDefault();
-    event.stopPropagation();
-    onUpdateSelection(entityKey, text, FILTER_ENTITY_TYPE_CATEGOTY);
-  };
-  return (
-    <span data-query={query} style={{ border: '5px solid green', position: 'relative' }}>
-      {children}
-      <ul style={{ position: 'absolute', top: '20px', left: '0' }} contentEditable={false}>
-        <li onClick={handleClick('category a')}>category a</li>
-        <li onClick={handleClick('category c')}>category c</li>
-        <li onClick={handleClick('category b')}>category b</li>
-      </ul>
-    </span>
-  );
-}
-
-AutocompleteCategories.propTypes = {
-  entityKey: PropTypes.string.isRequired,
-  decoratedText: PropTypes.string.isRequired,
-  children: PropTypes.node.isRequired,
-}
-
-const AutocompleteOperators = ({ entityKey, decoratedText: query, children }) => {
-  const { onUpdateSelection } = Entity.get(entityKey).getData();
-  const handleClick = text => event => {
-    event.preventDefault();
-    event.stopPropagation();
-    onUpdateSelection(entityKey, text, FILTER_ENTITY_TYPE_OPERATOR);
-  };
-  return (
-    <span data-query={query} style={{ border: '5px solid red', position: 'relative' }}>
-      {children}
-      <ul style={{ position: 'absolute', top: '20px', left: '0' }} contentEditable={false}>
-        <li onClick={handleClick('=')}>{'='}</li>
-        <li onClick={handleClick('>=')}>{'>='}</li>
-        <li onClick={handleClick('<=')}>{'<='}</li>
-      </ul>
-    </span>
-  );
-}
-
-AutocompleteOperators.propTypes = {
-  entityKey: PropTypes.string.isRequired,
-  decoratedText: PropTypes.string.isRequired,
-  children: PropTypes.node.isRequired,
-}
-
-const AutocompleteOptions = ({ entityKey, decoratedText: query, children }) => {
-  const { onUpdateSelection } = Entity.get(entityKey).getData();
-  const handleClick = text => event => {
-    event.preventDefault();
-    event.stopPropagation();
-    onUpdateSelection(entityKey, text, FILTER_ENTITY_TYPE_OPTION);
-  };
-  return (
-    <span data-query={query} style={{ border: '5px solid blue', position: 'relative' }}>
-      {children}
-      <ul style={{ position: 'absolute', top: '20px', left: '0' }} contentEditable={false}>
-        <li onClick={handleClick('option 1')}>option 1</li>
-        <li onClick={handleClick('option 3')}>option 3</li>
-        <li onClick={handleClick('option 2')}>option 2</li>
-      </ul>
-    </span>
-  );
-}
-
-AutocompleteOptions.propTypes = {
-  entityKey: PropTypes.string.isRequired,
-  decoratedText: PropTypes.string.isRequired,
-  children: PropTypes.node.isRequired,
-}
-
 function getDecorator() {
   return new CompositeDecorator([
     {
-      strategy: makeStrategyForEntityType(FILTER_ENTITY_TYPE_CATEGOTY),
+      strategy: makeStrategyForEntityType(Category.entityType),
       component: Category,
     },
     {
-      strategy: makeStrategyForEntityType(FILTER_ENTITY_TYPE_OPERATOR),
+      strategy: makeStrategyForEntityType(Operator.entityType),
       component: Operator,
     },
     {
-      strategy: makeStrategyForEntityType(FILTER_ENTITY_TYPE_OPTION),
+      strategy: makeStrategyForEntityType(Option.entityType),
       component: Option,
     },
     {
-      strategy: makeStrategyForEntityType(FILTER_ENTITY_TYPE_AUTOCOMPLETE_CATEGORIES),
+      strategy: makeStrategyForEntityType(AutocompleteCategories.entityType),
       component: AutocompleteCategories,
     },
     {
-      strategy: makeStrategyForEntityType(FILTER_ENTITY_TYPE_AUTOCOMPLETE_OPERATORS),
+      strategy: makeStrategyForEntityType(AutocompleteOperators.entityType),
       component: AutocompleteOperators,
     },
     {
-      strategy: makeStrategyForEntityType(FILTER_ENTITY_TYPE_AUTOCOMPLETE_OPTIONS),
+      strategy: makeStrategyForEntityType(AutocompleteOptions.entityType),
       component: AutocompleteOptions,
     },
   ]);
 }
 
-export const NullEntity = {
-  getData() {
-    return {
-      text: ''
-    };
-  },
-};
+export const componentByTypeMap = PropTypes.shape({
+  [Category.componentType]: PropTypes.func.isRequired,
+  [Operator.componentType]: PropTypes.func.isRequired,
+  [Option.componentType]: PropTypes.func.isRequired,
+  [AutocompleteCategories.componentType]: PropTypes.func.isRequired,
+  [AutocompleteOperators.componentType]: PropTypes.func.isRequired,
+  [AutocompleteOptions.componentType]: PropTypes.func.isRequired,
+});
 
-export const FILTER_ENTITY_TYPE_AUTOCOMPLETE_CATEGORIES = 'AUTOCOMPLETE_CATEGORIES';
-const FILTER_ENTITY_TYPE_AUTOCOMPLETE_OPERATORS = 'AUTOCOMPLETE_OPERATORS';
-const FILTER_ENTITY_TYPE_AUTOCOMPLETE_OPTIONS = 'AUTOCOMPLETE_OPTION';
-
-export function getNextEntityType(prevEntityType) {
-  switch (prevEntityType) {
-    case FILTER_ENTITY_TYPE_CATEGOTY:
-      return FILTER_ENTITY_TYPE_AUTOCOMPLETE_OPERATORS;
-    case FILTER_ENTITY_TYPE_OPERATOR:
-      return FILTER_ENTITY_TYPE_AUTOCOMPLETE_OPTIONS;
-    case FILTER_ENTITY_TYPE_OPTION:
-      return FILTER_ENTITY_TYPE_AUTOCOMPLETE_CATEGORIES;
-    default:
-      return prevEntityType;
-  }
-}
-
-export function createEditorStateFromFilters(filters) {
+export function createEditorStateFromFilters(filters, onRender) {
   return EditorState.moveSelectionToEnd(
     EditorState.createWithContent(
-      getContentState(filters),
+      getContentState(filters, onRender),
       getDecorator()
     )
   );
 }
+
+const FILTER_ENTITY_TYPES = fromJS([
+  Category.entityType,
+  Operator.entityType,
+  Option.entityType,
+]);
 
 export function getFilterEntitiesCount(contentBlock) {
   return contentBlock
@@ -258,12 +215,86 @@ export function getFilterEntitiesCount(contentBlock) {
     .count();
 }
 
-const FILTER_ENTITY_TYPE_CATEGOTY = 'CATEGORY';
-const FILTER_ENTITY_TYPE_OPERATOR = 'OPERATOR';
-const FILTER_ENTITY_TYPE_OPTION = 'OPTION';
+function getNextEntityType(prevEntityType) {
+  switch (prevEntityType) {
+    case Category.entityType:
+      return AutocompleteOperators.entityType;
+    case Operator.entityType:
+      return AutocompleteOptions.entityType;
+    case Option.entityType:
+      return AutocompleteCategories.entityType;
+    default:
+      return prevEntityType;
+  }
+}
 
-const FILTER_ENTITY_TYPES = fromJS([
-  FILTER_ENTITY_TYPE_CATEGOTY,
-  FILTER_ENTITY_TYPE_OPERATOR,
-  FILTER_ENTITY_TYPE_OPTION,
-]);
+export function getFoundAndMatchedExpectingEntityType(prevFirstBlock, nextFirstBlock, prevSelection) {
+  let prevEntityKey = (
+    prevFirstBlock.getLength() > 0 ?
+    prevFirstBlock.getEntityAt(prevSelection.getEndOffset() - 1) :
+    null
+  );
+  let foundAndMatched = false;
+  let expectingEntityType;
+  if (prevEntityKey) {
+    let found;
+    nextFirstBlock.findEntityRanges(
+      character => character.getEntity() === prevEntityKey,
+      () => { found = true }
+    );
+    if (found) {
+      const prevEntityType = Entity.get(prevEntityKey).getType();
+      expectingEntityType = getNextEntityType(prevEntityType);
+      foundAndMatched = prevEntityType === expectingEntityType;
+    } else {
+      // Entity was removed, so we need to delete data
+      Entity.replaceData(prevEntityKey, {});
+      prevEntityKey = null;
+      expectingEntityType = AutocompleteCategories.entityType;
+    }
+  } else {
+    expectingEntityType = AutocompleteCategories.entityType;
+  }
+  return {
+    foundAndMatched,
+    expectingEntityType
+  };
+}
+
+const NullEntity = {
+  getData() {
+    return {
+      text: ''
+    };
+  },
+};
+
+export function getFiltersFromEditorState(editorState) {
+  return editorState
+    .getCurrentContent()
+    .getFirstBlock()
+    .getCharacterList()
+    .map(character => character.getEntity())
+    .filter(it => it !== null)
+    .toOrderedSet()
+    .map(entityKey => Entity.get(entityKey))
+    .groupBy(function grouper() {
+      if (this.count === 3) {
+        this.index += 1;
+        this.count = 1;
+      } else {
+        this.count += 1;
+      }
+      return this.index;
+    }, {
+      index: 0,
+      count: 0,
+    })
+    .valueSeq()
+    .map(entities => entities.toIndexedSeq())
+    .map(entities => fromJS({
+      category: entities.get(0).getData().text,
+      operator: (entities.get(1) || NullEntity).getData().text,
+      option: (entities.get(2) || NullEntity).getData().text,
+    }));
+}

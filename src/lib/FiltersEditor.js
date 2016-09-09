@@ -18,39 +18,6 @@ import {
 
 import * as util from './util/FiltersDraft'
 
-function getFoundAndMatchedExpectingEntityType(prevFirstBlock, nextFirstBlock, prevSelection) {
-  let prevEntityKey = (
-    prevFirstBlock.getLength() > 0 ?
-    prevFirstBlock.getEntityAt(prevSelection.getEndOffset() - 1) :
-    null
-  );
-  let foundAndMatched = false;
-  let expectingEntityType;
-  if (prevEntityKey) {
-    let found;
-    nextFirstBlock.findEntityRanges(
-      character => character.getEntity() === prevEntityKey,
-      () => { found = true }
-    );
-    if (found) {
-      const prevEntityType = Entity.get(prevEntityKey).getType();
-      expectingEntityType = util.getNextEntityType(prevEntityType);
-      foundAndMatched = prevEntityType === expectingEntityType;
-    } else {
-      // Entity was removed, so we need to delete data
-      Entity.replaceData(prevEntityKey, {});
-      prevEntityKey = null;
-      expectingEntityType = util.FILTER_ENTITY_TYPE_AUTOCOMPLETE_CATEGORIES;
-    }
-  } else {
-    expectingEntityType = util.FILTER_ENTITY_TYPE_AUTOCOMPLETE_CATEGORIES;
-  }
-  return {
-    foundAndMatched,
-    expectingEntityType
-  };
-}
-
 export default class FiltersEditor extends Component {
 
   static propTypes = {
@@ -62,10 +29,7 @@ export default class FiltersEditor extends Component {
       })
     ).isRequired,
     onFiltersChange: PropTypes.func.isRequired,
-  };
-
-  state = {
-    editorState: util.createEditorStateFromFilters(this.props.filters),
+    componentByTypeMap: util.componentByTypeMap.isRequired,
   };
 
   handlePublishEditorStateToFilters = this.publishEditorStateToFilters.bind(this);
@@ -83,13 +47,17 @@ export default class FiltersEditor extends Component {
       }
     });
   };
-  onUpdateSelectionState = (prevEntityKey, text, textEntityType) => {
+  onRenderComponent = (componentType, props) => {
+    const Component = this.props.componentByTypeMap[componentType];
+    return React.createElement(Component, props);
+  };
+  onUpdateSelectionState = (prevEntityKey, textEntityType, text) => {
     this.setState(state => ({
       editorState: this.updateSelectionFromAutoComplete(
         state.editorState,
         prevEntityKey,
+        textEntityType,
         text,
-        textEntityType
       ),
     }), this.handlePublishEditorStateToFilters)
   };
@@ -111,7 +79,7 @@ export default class FiltersEditor extends Component {
     const {
       foundAndMatched,
       expectingEntityType
-    } = getFoundAndMatchedExpectingEntityType(
+    } = util.getFoundAndMatchedExpectingEntityType(
       prevFirstBlock,
       nextFirstBlock,
       prevSelection
@@ -125,6 +93,7 @@ export default class FiltersEditor extends Component {
       const nextSelection = nextEditorState.getSelection();
       //
       const nextEntityKey = Entity.create(expectingEntityType, 'MUTABLE', {
+        onRender: this.onRenderComponent,
         onUpdateSelection: this.onUpdateSelectionState,
       });
       const nextContentState = Modifier.applyEntity(
@@ -152,7 +121,7 @@ export default class FiltersEditor extends Component {
     }
   }
 
-  updateSelectionFromAutoComplete(prevEditorState, prevEntityKey, text, textEntityType) {
+  updateSelectionFromAutoComplete(prevEditorState, prevEntityKey, textEntityType, text) {
     const prevContentState = prevEditorState.getCurrentContent();
     const prevFirstBlock = prevContentState.getFirstBlock();
     let rangeToReplace;
@@ -167,6 +136,7 @@ export default class FiltersEditor extends Component {
       }
     );
     const nextEntityKey = Entity.create(textEntityType, 'IMMUTABLE', {
+      onRender: this.onRenderComponent,
       text,
     });
     const nextContentState = Modifier.replaceText(
@@ -183,44 +153,20 @@ export default class FiltersEditor extends Component {
     );
   }
 
-  getFiltersFromEditorState(editorState) {
-    return editorState
-      .getCurrentContent()
-      .getFirstBlock()
-      .getCharacterList()
-      .map(character => character.getEntity())
-      .filter(it => it !== null)
-      .toOrderedSet()
-      .map(entityKey => Entity.get(entityKey))
-      .groupBy(function grouper() {
-        if (this.count === 3) {
-          this.index += 1;
-          this.count = 1;
-        } else {
-          this.count += 1;
-        }
-        return this.index;
-      }, {
-        index: 0,
-        count: 0,
-      })
-      .valueSeq()
-      .map(entities => entities.toIndexedSeq())
-      .map(entities => fromJS({
-        category: entities.get(0).getData().text,
-        operator: (entities.get(1) || util.NullEntity).getData().text,
-        option: (entities.get(2) || util.NullEntity).getData().text,
-      }));
+  publishEditorStateToFilters() {
+    const filters = util.getFiltersFromEditorState(this.state.editorState).toJS();
+    this.props.onFiltersChange(filters);
   }
 
-  publishEditorStateToFilters() {
-    const filters = this.getFiltersFromEditorState(this.state.editorState).toJS();
-    this.props.onFiltersChange(filters);
+  componentWillMount() {
+    this.setState({
+      editorState: util.createEditorStateFromFilters(this.props.filters, this.onRenderComponent),
+    });
   }
 
   componentWillReceiveProps(nextProps) {
     const nextFiltersFromProps = fromJS(nextProps.filters);
-    const nextFiltersFromState = this.getFiltersFromEditorState(this.state.editorState)
+    const nextFiltersFromState = util.getFiltersFromEditorState(this.state.editorState)
 
     const isFiltersMatch = nextFiltersFromProps.equals(nextFiltersFromState);
     if (!isFiltersMatch) {
@@ -236,6 +182,7 @@ export default class FiltersEditor extends Component {
         map
           .delete('filters')
           .delete('onFiltersChange')
+          .delete('componentByTypeMap')
           .set('editorState', this.state.editorState)
           .set('onChange', this.onChange)
       )
