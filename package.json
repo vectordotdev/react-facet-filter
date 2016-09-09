@@ -59,11 +59,6 @@
       "pre-push": "npm run test:once"
     }
   },
-  "config": {
-    "ghooks": {
-      "pre-push": "npm run test:once"
-    }
-  },
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
