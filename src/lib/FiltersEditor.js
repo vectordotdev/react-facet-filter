@@ -5,6 +5,7 @@ import React, {
 
 import {
   fromJS,
+  Map,
 } from 'immutable'
 
 import {
@@ -199,7 +200,6 @@ export default class FiltersEditor extends Component {
     this.props.onFiltersChange(filters);
   }
 
-  // TODO: Link CWRP for new filters
   componentWillReceiveProps(nextProps) {
     const nextFiltersFromProps = fromJS(nextProps.filters);
     const nextFiltersFromState = this.getFiltersFromEditorState(this.state.editorState)
@@ -213,14 +213,16 @@ export default class FiltersEditor extends Component {
   }
 
   render() {
-    return (
-      <Editor
-        // TODO: this.props
-        editorState={this.state.editorState}
-        onChange={this.onChange}
-        placeholder="Write a tweet..."
-        spellCheck
-      />
-    );
+    const editorProps = Map(this.props)
+      .withMutations(map =>
+        map
+          .delete('filters')
+          .delete('onFiltersChange')
+          .set('editorState', this.state.editorState)
+          .set('onChange', this.onChange)
+      )
+      .toObject()
+
+    return React.createElement(Editor, editorProps);
   }
 }
