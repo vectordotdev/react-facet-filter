@@ -165,7 +165,7 @@ export default class FiltersEditor extends Component {
     const isFiltersMatch = nextFiltersFromProps.equals(nextFiltersFromState);
     if (!isFiltersMatch) {
       this.setState({
-        editorState: util.createEditorStateFromFilters(nextProps.filters),
+        editorState: util.createEditorStateFromFilters(nextProps.filters, this.onRenderComponent),
       });
     }
   }
