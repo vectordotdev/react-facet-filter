@@ -4,6 +4,8 @@ import React, {
 
 import {
   fromJS,
+  List,
+  Map,
 } from 'immutable'
 
 import {
@@ -303,6 +305,14 @@ const NullEntity = {
   },
 };
 
+function filterWithDefaults(filter) {
+  return Map({
+    category: '',
+    operator: '',
+    option: ''
+  }).merge(filter);
+}
+
 export function getFiltersFromEditorState(editorState) {
   return editorState
     .getCurrentContent()
@@ -312,23 +322,27 @@ export function getFiltersFromEditorState(editorState) {
     .filter(it => it !== null)
     .toOrderedSet()
     .map(entityKey => Entity.get(entityKey))
-    .groupBy(function grouper() {
-      if (this.count === 3) {
-        this.index += 1;
-        this.count = 1;
-      } else {
-        this.count += 1;
-      }
-      return this.index;
-    }, {
-      index: 0,
-      count: 0,
-    })
-    .valueSeq()
-    .map(entities => entities.toIndexedSeq())
-    .map(entities => fromJS({
-      category: entities.get(0).getData().text,
-      operator: (entities.get(1) || NullEntity).getData().text,
-      option: (entities.get(2) || NullEntity).getData().text,
-    }));
+    .reduce((accList, entity) => {
+      return [
+        Category,
+        Operator,
+        Option
+      ].reduce((list, {entityType, componentType}) => {
+        const targetEntityType = entity.getType();
+        if (targetEntityType === entityType) {
+          let lastFilter = list.last();
+          if (!lastFilter) {
+            lastFilter = Map();
+          }
+          if (lastFilter.has(componentType)) {// touched new filter
+            list = list.push(filterWithDefaults(lastFilter));
+            lastFilter = Map();
+          }
+          const text = entity.getData().text;
+          lastFilter = lastFilter.set(componentType, text);
+          return list.set(-1, lastFilter);
+        }
+        return list;
+      }, accList);
+    }, List());
 }
