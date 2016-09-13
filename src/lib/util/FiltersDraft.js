@@ -101,13 +101,14 @@ export const filterPropTypesShape = PropTypes.shape({
 
 function makeAutocompleteComponent({ displayName, componentType, entityType, nextEntityType }) {
   function AutocompleteComponent({ entityKey, decoratedText: query, children }) {
-    const { onRender, onUpdateSelection } = Entity.get(entityKey).getData();
+    const { filter, onRender, onUpdateSelection } = Entity.get(entityKey).getData();
     const onSelect = text => {
       onUpdateSelection(entityKey, nextEntityType, text);
     };
     return onRender(componentType, {
       children,
       query,
+      filter,
       onSelect,
     });
   };
@@ -117,6 +118,7 @@ function makeAutocompleteComponent({ displayName, componentType, entityType, nex
   AutocompleteComponent.propTypes = {
     entityKey: PropTypes.string.isRequired,
     decoratedText: PropTypes.string.isRequired,
+    filter: filterPropTypesShape,
     children: PropTypes.node.isRequired,
   };
   return AutocompleteComponent;
@@ -265,6 +267,32 @@ export function getFoundAndMatchedExpectingEntityType(prevFirstBlock, nextFirstB
     foundAndMatched,
     expectingEntityType
   };
+}
+
+export function getAssociateFilter(contentBlock, filters, targetAnchorOffset) {
+  let anchorOffset = 0;
+  let focusOffset = 0;
+  return filters.reduce((acc, filter) => {
+    if (acc) {
+      return acc;
+    }
+    const { category, operator='', option='' } = filter;
+    return [
+      [Category.entityType, category],
+      [Operator.entityType, operator],
+      [Option.entityType, option]
+    ].reduce((result, [entityType, it]) => {
+      if (result || !it) {
+        return result;
+      }
+      anchorOffset = focusOffset;
+      focusOffset += it.length;
+
+      if (anchorOffset <= targetAnchorOffset && targetAnchorOffset <= focusOffset) {
+        return filter;
+      }
+    }, null);
+  }, null);
 }
 
 const NullEntity = {

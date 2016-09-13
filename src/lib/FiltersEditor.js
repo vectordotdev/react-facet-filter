@@ -84,9 +84,15 @@ export default class FiltersEditor extends Component {
         nextEditorState,
       };
     } else {
+      const associateFilter = util.getAssociateFilter(
+        prevFirstBlock,
+        this.props.filters,
+        prevSelection.getStartOffset()
+      );
       const nextSelection = nextEditorState.getSelection();
       //
       const nextEntityKey = Entity.create(expectingEntityType, 'MUTABLE', {
+        filter: associateFilter,
         onRender: this.onRenderComponent,
         onUpdateSelection: this.onUpdateSelectionState,
       });
