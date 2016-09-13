@@ -93,6 +93,12 @@ const Option = makeComponent({
   entityType: 'OPTION',
 });
 
+export const filterPropTypesShape = PropTypes.shape({
+  [Category.componentType]: PropTypes.string.isRequired,
+  [Operator.componentType]: PropTypes.string,
+  [Option.componentType]: PropTypes.string,
+});
+
 function makeAutocompleteComponent({ displayName, componentType, entityType, nextEntityType }) {
   function AutocompleteComponent({ entityKey, decoratedText: query, children }) {
     const { onRender, onUpdateSelection } = Entity.get(entityKey).getData();

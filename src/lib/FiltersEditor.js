@@ -21,13 +21,7 @@ import * as util from './util/FiltersDraft'
 export default class FiltersEditor extends Component {
 
   static propTypes = {
-    filters: PropTypes.arrayOf(
-      PropTypes.shape({
-        category: PropTypes.string.isRequired,
-        operator: PropTypes.string,
-        option: PropTypes.string,
-      })
-    ).isRequired,
+    filters: PropTypes.arrayOf(util.filterPropTypesShape).isRequired,
     onFiltersChange: PropTypes.func.isRequired,
     componentByTypeMap: util.componentByTypeMap.isRequired,
   };
