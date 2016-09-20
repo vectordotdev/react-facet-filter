@@ -6,6 +6,17 @@ import {
   FiltersEditor
 } from '../lib'
 
+const Autocomplete = ({ children }) => <span>{children}</span>
+
+const componentByTypeMap = {
+  category: Autocomplete,
+  operator: Autocomplete,
+  option: Autocomplete,
+  autocompleteCategories: Autocomplete,
+  autocompleteOperators: Autocomplete,
+  autocompleteOptions: Autocomplete,
+}
+
 export default class FiltersEditorDemo extends Component {
   state = {
     filters: [
@@ -67,6 +78,7 @@ export default class FiltersEditorDemo extends Component {
           <FiltersEditor
             filters={this.state.filters}
             onFiltersChange={this.handleFiltersChange}
+            componentByTypeMap={componentByTypeMap}
           />
         </div>
         <input
